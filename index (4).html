@@ -1,0 +1,1635 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no,viewport-fit=cover">
+<title>SMBS Order Flow</title>
+<style>
+  :root{--bg:#05070a;--pn:#0d1117;--bd:#1c222c;--tx:#d1d4dc;--mt:#787b86}
+  *{box-sizing:border-box}
+  html,body{margin:0;height:100%;background:var(--bg);color:var(--tx);font:13px -apple-system,Segoe UI,Roboto,Arial,sans-serif;overflow:hidden;-webkit-user-select:none;user-select:none}
+  input,select,textarea{-webkit-user-select:text;user-select:text}
+  #top{position:fixed;top:0;left:0;right:0;height:40px;background:var(--bg);border-bottom:1px solid var(--bd);display:flex;align-items:center;gap:4px;padding:0 6px;z-index:5;overflow-x:auto;white-space:nowrap}
+  .logo{color:#e8b84a;font:700 15px Georgia,serif;letter-spacing:1px;padding:0 6px 0 2px;flex:none}
+  #sym{width:96px;background:transparent;border:1px solid var(--bd);border-radius:4px;color:#fff;font:700 13px sans-serif;padding:5px 7px;text-transform:uppercase;flex:none}
+  .tfb,.tb{background:transparent;border:0;color:var(--tx);font:13px sans-serif;padding:6px 8px;border-radius:4px;cursor:pointer;flex:none}
+  .tfb:hover,.tb:hover{background:var(--pn)}
+  .tfb.on{color:#2962ff;background:#10203d}
+  #ct{background:var(--bg);color:var(--tx);border:1px solid var(--bd);border-radius:4px;padding:5px 4px;font:12px sans-serif;flex:none}
+  .sep{width:1px;height:20px;background:var(--bd);margin:0 4px;flex:none}
+  #st{color:var(--mt);font-size:11px;margin-left:8px;flex:none}
+  #lt{position:fixed;top:40px;left:0;bottom:0;width:40px;background:var(--bg);border-right:1px solid var(--bd);display:flex;flex-direction:column;align-items:center;gap:4px;padding-top:6px;z-index:5}
+  #lt button{width:32px;height:32px;background:transparent;border:0;border-radius:4px;color:var(--tx);font-size:16px;cursor:pointer}
+  #lt button.on{background:var(--pn);color:#2962ff}
+  canvas{position:absolute;top:40px;left:40px;touch-action:none;display:block}
+  .menu{position:fixed;top:44px;right:8px;z-index:6;background:var(--pn);border:1px solid var(--bd);border-radius:6px;padding:10px 12px;display:none;max-height:calc(100% - 56px);overflow:auto;min-width:250px}
+  .menu.show{display:block}
+  .menu h4{margin:10px 0 4px;color:var(--mt);font-size:11px;font-weight:600;letter-spacing:.5px;text-transform:uppercase}
+  .menu h4:first-child{margin-top:0}
+  .menu .r{display:flex;align-items:center;gap:6px;padding:3px 0;white-space:nowrap}
+  .menu .r label{flex:1;display:flex;align-items:center;gap:6px}
+  .menu input,.menu select,.menu button{background:var(--bg);color:var(--tx);border:1px solid var(--bd);border-radius:4px;padding:3px 6px;font:12px sans-serif}
+  .menu input[type=checkbox]{padding:0}
+  .menu input[type=number]{width:58px}
+  .menu button.gr{padding:1px 7px;font-size:14px;cursor:pointer}
+  .menu small{display:block;color:var(--mt);font-size:11px;line-height:1.35;margin-top:4px;white-space:normal;max-width:240px}
+  #dlg{position:fixed;inset:0;background:rgba(0,0,0,.55);z-index:20;display:none;align-items:center;justify-content:center}
+  #dlg.show{display:flex}
+  #dlg .box{width:min(94vw,540px);max-height:92vh;background:#0f1218;border:1px solid #232834;border-radius:10px;display:flex;flex-direction:column;overflow:hidden}
+  #dlg .hd{display:flex;justify-content:space-between;align-items:center;padding:14px 16px;font-size:14px;letter-spacing:.5px;color:#fff}
+  #dlg .x{background:transparent;border:0;color:var(--tx);font-size:24px;cursor:pointer;line-height:1}
+  #dlg .tabs{display:flex;gap:2px;padding:0 10px;border-bottom:1px solid #232834;overflow-x:auto}
+  #dlg .tabs button{background:transparent;border:0;border-bottom:2px solid transparent;color:var(--mt);padding:10px;white-space:nowrap;font:13px sans-serif;cursor:pointer}
+  #dlg .tabs button.on{color:#fff;border-bottom-color:#fff}
+  #dlg .body{padding:10px 16px;overflow:auto;flex:1}
+  #dlg .row{display:flex;justify-content:space-between;align-items:center;gap:12px;padding:7px 0}
+  #dlg .row input[type=number],#dlg .row select{background:#0a0d12;color:#fff;border:1px solid #232834;border-radius:5px;padding:6px 8px;width:160px;font:13px sans-serif}
+  #dlg .row input[type=color]{width:46px;height:28px;border:1px solid #232834;background:transparent;padding:0}
+  #dlg .row input[type=checkbox]{width:18px;height:18px;accent-color:#20b98a}
+  #dlg .note{color:var(--mt);font-size:12px;line-height:1.45;padding:6px 0}
+  #dlg .ft{display:flex;gap:8px;padding:12px 16px;border-top:1px solid #232834}
+  #dlg .ft span{flex:1}
+  #dlg .ft button{background:#0a0d12;color:#fff;border:1px solid #232834;border-radius:6px;padding:8px 14px;font:13px sans-serif;cursor:pointer}
+  #tape{position:fixed;top:40px;right:0;bottom:0;width:250px;background:var(--bg);border-left:1px solid var(--bd);font:11px ui-monospace,Menlo,Consolas,monospace;overflow:hidden;display:none;z-index:4}
+  #tape .th,#tape .tr{display:grid;grid-template-columns:62px 1fr 50px 38px;gap:4px;padding:2px 8px;white-space:nowrap}
+  #tape .th{color:var(--mt);border-bottom:1px solid var(--bd);padding:6px 8px}
+  #tape .tr.b{color:#26a69a} #tape .tr.s{color:#ef5350} #tape .tr.big{background:rgba(255,255,255,.07);font-weight:700}
+  #tape .tr span:nth-child(1){color:#8b94a3} #tape .tr span:nth-child(2),#tape .tr span:nth-child(3){text-align:right}
+  #pad{position:fixed;right:80px;bottom:76px;z-index:7;display:none;grid-template-columns:repeat(4,40px);gap:4px;opacity:.88}
+  #pad.show{display:grid}
+  #pad button{height:40px;border-radius:8px;border:1px solid var(--bd);background:rgba(30,34,45,.94);color:var(--tx);font-size:17px;touch-action:none}
+</style>
+</head>
+<body>
+<div id="top">
+  <span class="logo">SMBS</span>
+  <input id="sym" value="XAUUSDT" spellcheck="false" autocomplete="off" autocapitalize="characters">
+  <div class="sep"></div>
+  <span id="tfs"></span>
+  <div class="sep"></div>
+  <select id="ct"><option>Candles</option><option>Hollow candles</option><option>Bars</option><option>Heikin Ashi</option><option>Line</option><option>Area</option></select>
+  <button class="tb" id="cg" title="Candle settings">&#9881; Candles</button>
+  <button class="tb" id="bi">Indicators</button>
+  <button class="tb" id="bs">Settings</button>
+  <span id="st">connecting...</span>
+</div>
+<div id="lt">
+  <button id="t_x" class="on" title="Crosshair">&#10011;</button>
+  <button id="t_h" title="Horizontal line">&#8213;</button>
+  <button id="t_t" title="Trend line">/</button>
+  <button id="t_c" title="Remove drawings">&#10005;</button>
+</div>
+<div id="mi" class="menu">
+  <h4>Footprint</h4>
+  <div class="r"><label><input type="checkbox" id="fp" checked>Footprint (bid x ask)</label><button class="gr" data-d="fpd">&#9881;</button></div>
+  <div class="r"><label><input type="checkbox" id="zn" checked>Footprint zones</label></div>
+  <h4>Order flow</h4>
+  <div class="r"><label><input type="checkbox" id="sg" checked>Absorption / Exhaustion</label><button class="gr" data-d="ae">&#9881;</button></div>
+  <div class="r"><label><input type="checkbox" id="bb" checked>Orderflow bubbles</label><button class="gr" data-d="bub">&#9881;</button></div>
+  <div class="r"><label><input type="checkbox" id="lo" checked>Limit orders</label><button class="gr" data-d="lim">&#9881;</button></div>
+  <div class="r"><label><input type="checkbox" id="bk" checked>Book ladder</label></div>
+  <h4>Profiles</h4>
+  <div class="r"><label><input type="checkbox" id="vp" checked>Volume profile</label></div>
+  <div class="r"><label><input type="checkbox" id="dp" checked>Delta profile</label></div>
+  <div class="r"><label><input type="checkbox" id="nd" checked>HVN / LVN</label></div>
+  <h4>Overlays</h4>
+  <div class="r"><label><input type="checkbox" id="vw" checked>VWAP</label></div>
+  <div class="r"><label><input type="checkbox" id="vb">VWAP bands</label></div>
+  <div class="r"><label><input type="checkbox" id="m1" checked>MA 1</label><input type="number" id="l1" value="200" min="2" max="1000"></div>
+  <div class="r"><label><input type="checkbox" id="m2" checked>MA 2</label><input type="number" id="l2" value="233" min="2" max="1000"></div>
+  <div class="r"><label>MA type</label><select id="mt"><option>EMA</option><option>SMA</option></select></div>
+  <h4>Extras (off by default)</h4>
+  <div class="r"><label><input type="checkbox" id="dv">Delta divergence</label></div>
+  <div class="r"><label><input type="checkbox" id="tr">Trapped buyers / sellers</label></div>
+</div>
+<div id="ms" class="menu">
+  <h4>Chart</h4>
+  <div class="r"><label>Row size</label><select id="tick"><option value="0">Auto</option><option>0.1</option><option>0.5</option><option>1</option><option>5</option><option>10</option></select></div>
+  <div class="r"><label><input type="checkbox" id="pd">Touch controls (arrows, zoom)</label></div>
+  <div class="r"><label><input type="checkbox" id="lg" checked>Indicator list (top-left)</label></div>
+  <div class="r"><button id="rv">Reset view</button></div>
+  <h4>Data sources</h4>
+  <div class="r"><label><input type="checkbox" id="xbn" checked>Binance Futures</label></div>
+  <div class="r"><label><input type="checkbox" id="xby">Bybit</label></div>
+  <div class="r"><label><input type="checkbox" id="xok">OKX</label></div>
+  <div class="r"><label><input type="checkbox" id="xhl">Hyperliquid</label></div>
+  <small>Bybit, OKX and Hyperliquid add live trades only. They have no history, so keep Binance only for accurate footprint history.</small>
+  <h4>Recorder (optional)</h4>
+  <div class="r"><input id="rec" placeholder="https://your-server" size="20"></div>
+  <div class="r"><button id="ra">Apply and reload</button></div>
+</div>
+<div id="pad">
+  <button data-n="L">&#9664;</button><button data-n="U">&#9650;</button><button data-n="D">&#9660;</button><button data-n="R">&#9654;</button>
+  <button data-n="ZI">+</button><button data-n="ZO">&minus;</button><button data-n="RS">&#10226;</button><button data-n="NOW">&#9197;</button>
+</div>
+<div id="tape"></div>
+<div id="dlg"></div>
+<canvas id="c"></canvas>
+<script>
+const $ = id => document.getElementById(id);
+const cv = $('c'), ctx = cv.getContext('2d');
+const UP = '#26a69a', DN = '#ef5350', BGC = '#05070a', GRID = '#10141b', TXT = '#d1d4dc', MUT = '#787b86';
+addEventListener('error', e => { try { $('st').textContent = 'JS error: ' + e.message; } catch(x){} });
+
+// ===== fixed tuning (the detailed, user-facing settings live in the settings dialogs) =====
+const CFG = {
+  absK: 1.5, heavyK: 3, exhFrac: 0.25, exhRows: 6,   // Classic engine
+  divFrac: 0.05, maxZones: 6, hvnK: 1.3, lvnK: 0.5, maxNodes: 3, trapK: 1.3, trapLook: 3,
+  bfPages: 40, lazyPages: 40,
+  ticks: [.01,.02,.05,.1,.2,.5,1,2,5,10,20,50,100,200,500]
+};
+
+// ===================== SETTINGS (schema driven, like DeltaMerge / TradingView) =====================
+const F = {
+  num: (k, l, d, mn, mx, st) => ({k, l, t: 'n', d, mn, mx, st: st || 1}),
+  bool: (k, l, d) => ({k, l, t: 'b', d: !!d}),
+  sel: (k, l, o, d) => ({k, l, t: 's', o, d: d || o[0]}),
+  col: (k, l, d) => ({k, l, t: 'c', d}),
+  note: l => ({t: 'i', l})
+};
+const SCH = {
+  cnd: {title: 'CANDLES', tabs: {
+    Style: [
+      F.sel('chartType', 'Chart type', ['Candles', 'Hollow candles', 'Bars', 'Heikin Ashi', 'Line', 'Area']),
+      F.bool('bodyOn', 'Body', 1), F.bool('borderOn', 'Borders', 1), F.bool('wickOn', 'Wick', 1),
+      F.col('upCol', 'Up body', UP), F.col('dnCol', 'Down body', DN),
+      F.col('upBor', 'Up border', UP), F.col('dnBor', 'Down border', DN),
+      F.col('upWick', 'Up wick', UP), F.col('dnWick', 'Down wick', DN),
+      F.num('bodyW', 'Body width %', 70, 20, 100, 5)],
+    'Line / Area': [
+      F.num('lineW', 'Line width', 2, 1, 6, 1), F.col('lineCol', 'Line colour', '#2962ff'), F.num('areaOp', 'Area opacity %', 25, 0, 80, 5)]
+  }},
+  fpd: {title: 'FOOTPRINT', tabs: {
+    Cells: [
+      F.bool('fpText', 'Show numbers', 1), F.sel('cellMode', 'Cell colour', ['Volume intensity', 'Delta']),
+      F.num('fpOp', 'Cell opacity %', 100, 20, 100, 5), F.bool('fpPOC', 'Highlight POC row', 1),
+      F.bool('fpTot', 'Totals under columns', 1), F.bool('fpVA', 'Value area lines (VAH / VAL)', 1)],
+    Imbalance: [
+      F.bool('fpImb', 'Show imbalance', 1), F.num('imbR', 'Imbalance ratio', 3, 1.5, 10, .5), F.num('stackN', 'Stacked imbalance (rows)', 3, 2, 8, 1)]
+  }},
+  ae: {title: 'ABSORPTION / EXHAUSTION', tabs: {
+    Detection: [
+      F.sel('engine', 'Detection engine', ['Scored', 'Classic']),
+      F.bool('aeAbs', 'Enable Absorption', 1), F.bool('aeExh', 'Enable Exhaustion', 1),
+      F.num('minScore', 'Minimum Score', 70, 30, 100, 1), F.sel('sens', 'Sensitivity', ['Low', 'Medium', 'High'], 'Medium'),
+      F.num('lookback', 'Baseline lookback (bars)', 100, 10, 500, 5), F.num('atrLen', 'ATR length (bars)', 14, 2, 100, 1),
+      F.note('Scored: every candidate gets a 0-100 score from volume, delta, price progress and context. Classic: the original rule based detector.')],
+    'Volume & Delta': [
+      F.num('relVol', 'Relative Volume Filter (x)', 2, 1, 10, .5), F.num('minCell', 'Minimum Cell Volume (0 = Auto)', 0, 0, 1e9, 1),
+      F.num('deltaStr', 'Delta Strength %', 70, 55, 95, 1), F.sel('deltaNorm', 'Delta Normalization', ['Share', 'Percentile'])],
+    Progress: [
+      F.num('maxProg', 'Max Price Progress % (0 = Auto)', 0, 0, 300, 10), F.sel('rangeNorm', 'Range Normalization', ['ATR (ticks)', 'Candle range']),
+      F.num('follow', 'Follow-through bars', 3, 1, 20, 1), F.num('extLook', 'Extension lookback (bars)', 5, 1, 50, 1),
+      F.num('minLevels', 'Minimum Levels', 1, 0, 6, 1), F.num('clusterLevels', 'Cluster Levels', 3, 1, 6, 1),
+      F.num('persist', 'Minimum Persistence (updates)', 2, 0, 10, 1), F.num('minTrades', 'Minimum Trades per bar (0 = off)', 0, 0, 1e7, 1)],
+    Context: [
+      F.bool('ctxMP', 'Use Market Profile', 1), F.bool('ctxVP', 'Use Volume Profile', 1), F.bool('ctxVW', 'Use VWAP', 1),
+      F.bool('ctxHM', 'Use Heatmap', 1), F.bool('ctxDOM', 'Use DOM', 1), F.num('ctxW', 'Context Weight %', 20, 0, 60, 5)],
+    Confirmation: [
+      F.sel('confMode', 'Confirmation Mode', ['Immediate', 'Follow-through', 'Retest']),
+      F.num('retestWin', 'Retest window (bars)', 20, 1, 100, 1), F.num('retestTol', 'Retest tolerance (ticks)', 2, 0, 20, 1)],
+    Display: [
+      F.sel('aeMode', 'Mode', ['Marker', 'Badge']), F.bool('showScore', 'Show Score', 1),
+      F.sel('labelStyle', 'Show Labels', ['Compact (SA 87)', 'Full name', 'None']), F.bool('showZones', 'Show Zones', 1),
+      F.bool('showDev', 'Show developing (candidate) events', 1), F.bool('keepInv', 'Keep invalidated events visible', 1),
+      F.bool('tipOn', 'Evidence tooltip on hover / tap', 1), F.bool('aeAlert', 'Alert (beep + status) on new live events', 0), F.num('hist', 'History (events)', 50, 5, 500, 5), F.num('aeOp', 'Opacity %', 80, 20, 100, 5),
+      F.col('colBA', 'Buyer Absorption', '#20b98a'), F.col('colSA', 'Seller Absorption', '#ff9a3c'),
+      F.col('colBE', 'Buyer Exhaustion', '#ffcc4d'), F.col('colSE', 'Seller Exhaustion', '#b794ff'), F.col('colAL', 'Labels & tooltip', '#f1f3f5')]
+  }},
+  bub: {title: 'ORDERFLOW BUBBLES', tabs: {
+    Basics: [
+      F.note('Executed trades grouped by time and price, sized by volume, coloured by the taker side. A bubble shows size traded aggressively, not who traded or why.'),
+      F.sel('unit', 'Volume unit', ['Quote notional (USDT)', 'Coins (base)']),
+      F.sel('thrMode', 'Show bubbles of at least', ['Adaptive (top % of recent)', 'Fixed value']),
+      F.num('topPct', 'Top %', 1, .1, 20, .1), F.num('fixedVal', 'Fixed value', 0, 0, 1e9, 1000),
+      F.bool('hlOn', 'Highlight at (x threshold)', 1), F.num('hlMult', 'Highlight multiple', 3, 1, 50, .5),
+      F.sel('sizeBy', 'Size bubbles by', ['Total volume', 'Delta']), F.sel('colorBy', 'Colour by', ['Buy/sell balance', 'Dominant']),
+      F.sel('shape', 'Shape', ['Solid', 'Pie']), F.sel('bLabels', 'Labels', ['Highlighted only', 'All labels', 'None'])],
+    Advanced: [
+      F.sel('timeWin', 'Time window', ['Auto by timeframe', 'Fixed 250ms', 'Fixed 1s', 'Fixed 5s', 'Fixed 30s']),
+      F.sel('priceGroup', 'Price grouping', ['Auto (row size)', 'Ticks per band']), F.num('ticksBand', 'Ticks per band', 1, 1, 50, 1),
+      F.sel('sizeCurve', 'Size curve', ['Area', 'Linear', 'Log']), F.num('largestAt', 'Largest at (x threshold)', 10, 2, 100, 1),
+      F.num('minPx', 'Smallest bubble (px)', 4, 1, 20, 1), F.num('maxPx', 'Largest bubble (px)', 13, 6, 60, 1),
+      F.num('bubOp', 'Opacity (%)', 60, 10, 100, 5), F.num('nonHlOp', 'Non-highlighted opacity (%)', 100, 10, 100, 5),
+      F.sel('overlap', 'Overlapping bubbles', ['Hide covered bubbles', 'Show all']),
+      F.sel('spacing', 'Screen spacing', ['Tight (3 px)', 'Normal (6 px)', 'Wide (10 px)'], 'Normal (6 px)'), F.bool('outline', 'Outline', 1)],
+    Alerts: [
+      F.bool('flash', 'Flash in the status strip', 0), F.bool('sound', 'Sound (needs one tap on the page first)', 0),
+      F.note('Alerts only fire for new bubbles on the live candle, never from history.')],
+    Colours: [
+      F.col('colBuy', 'Aggressive buy', '#2dd4a0'), F.col('colSell', 'Aggressive sell', '#ff5c6c'), F.col('colBal', 'Balanced', '#94a3b8'),
+      F.col('colRing', 'Highlight ring', '#f1f3f5'), F.col('colLbl', 'Labels', '#f1f3f5')]
+  }},
+  lim: {title: 'LIMIT ORDERS', tabs: {
+    Basics: [
+      F.note('Resting orders from the Binance Futures order book. Large orders are tracked as lines from the moment they appear until they are filled or pulled.'),
+      F.sel('lmMode', 'Display', ['Lines + heatmap', 'Lines', 'Heatmap']),
+      F.num('limK', 'Minimum size (x median level)', 12, 3, 100, 1), F.num('limMax', 'Max lines tracked', 5, 1, 12, 1),
+      F.num('limAge', 'Show after (seconds)', 3, 0, 60, 1), F.bool('limHist', 'Show ended orders (filled / pulled)', 1),
+      F.bool('limLbl', 'Show size labels', 1), F.num('limOp', 'Line opacity %', 85, 20, 100, 5)],
+    Heatmap: [
+      F.num('heatThr', 'Hide below (% of strongest)', 18, 0, 80, 1), F.num('heatGamma', 'Contrast (lower = brighter)', 0.7, 0.3, 1.5, .1), F.num('heatOp', 'Heatmap opacity %', 70, 10, 100, 5)],
+    Colours: [F.col('colLB', 'Bid (buy) orders', '#2dd4a0'), F.col('colLA', 'Ask (sell) orders', '#ff7a59')]
+  }}
+};
+const SET = {};
+Object.values(SCH).forEach(s => Object.values(s.tabs).forEach(fs => fs.forEach(f => { if (f.k) SET[f.k] = f.d; })));
+try { Object.assign(SET, JSON.parse(localStorage.smbs_set3 || '{}')); } catch(e){}
+let setVer = 1;
+function saveSet(){ try { localStorage.smbs_set3 = JSON.stringify(SET); } catch(e){} invalidate(); }
+function invalidate(){ setVer++; evMemo.k = ''; hk = ''; dirty = true; }
+
+function openDlg(id){
+  const sc = SCH[id], tabs = Object.keys(sc.tabs), draft = Object.assign({}, SET); let cur = tabs[0];
+  const el = $('dlg'); el.innerHTML = ''; el.classList.add('show');
+  const box = document.createElement('div'); box.className = 'box';
+  box.innerHTML = `<div class="hd"><b>${sc.title}</b><button class="x">&times;</button></div><div class="tabs"></div><div class="body"></div><div class="ft"><button class="df">Defaults</button><span></span><button class="cn">Cancel</button><button class="ok">OK</button></div>`;
+  el.appendChild(box);
+  const tabsEl = box.querySelector('.tabs'), body = box.querySelector('.body');
+  const render = () => {
+    tabsEl.innerHTML = ''; body.innerHTML = '';
+    tabs.length > 1 && tabs.forEach(t => { const b = document.createElement('button'); b.textContent = t; if (t === cur) b.className = 'on'; b.onclick = () => { cur = t; render(); }; tabsEl.appendChild(b); });
+    sc.tabs[cur].forEach(f => {
+      if (f.t === 'i'){ const n = document.createElement('div'); n.className = 'note'; n.textContent = f.l; body.appendChild(n); return; }
+      const row = document.createElement('div'); row.className = 'row';
+      const lab = document.createElement('span'); lab.textContent = f.l; row.appendChild(lab);
+      let inp;
+      if (f.t === 'n'){ inp = document.createElement('input'); inp.type = 'number'; inp.min = f.mn; inp.max = f.mx; inp.step = f.st; inp.value = draft[f.k]; inp.onchange = () => { const v = +inp.value; draft[f.k] = isFinite(v) ? Math.min(f.mx, Math.max(f.mn, v)) : f.d; }; }
+      else if (f.t === 'b'){ inp = document.createElement('input'); inp.type = 'checkbox'; inp.checked = !!draft[f.k]; inp.onchange = () => { draft[f.k] = inp.checked; }; }
+      else if (f.t === 's'){ inp = document.createElement('select'); f.o.forEach(o => { const op = document.createElement('option'); op.textContent = o; inp.appendChild(op); }); inp.value = draft[f.k]; inp.onchange = () => { draft[f.k] = inp.value; }; }
+      else { inp = document.createElement('input'); inp.type = 'color'; inp.value = draft[f.k]; inp.oninput = () => { draft[f.k] = inp.value; }; }
+      row.appendChild(inp); body.appendChild(row);
+    });
+  };
+  const close = () => { el.classList.remove('show'); el.innerHTML = ''; };
+  box.querySelector('.x').onclick = close; box.querySelector('.cn').onclick = close;
+  box.querySelector('.ok').onclick = () => { Object.assign(SET, draft); close(); $('ct').value = SET.chartType; saveSet(); };
+  box.querySelector('.df').onclick = () => { Object.values(sc.tabs).forEach(fs => fs.forEach(f => { if (f.k) draft[f.k] = f.d; })); render(); };
+  render();
+}
+
+// ===================== STATE =====================
+const TFS = [['5s',5e3],['10s',1e4],['15s',15e3],['30s',3e4],['1m',6e4],['3m',18e4],['5m',3e5],['15m',9e5],['30m',18e5],['1h',36e5],['2h',72e5],['4h',144e5],['D',864e5]];
+const KI = {6e4: '1m', 18e4: '3m', 3e5: '5m', 9e5: '15m', 18e5: '30m', 36e5: '1h', 72e5: '2h', 144e5: '4h', 864e5: '1d'};
+const EVN = {BA: {n: 'Buyer Absorption', c: 'colBA'}, SA: {n: 'Seller Absorption', c: 'colSA'}, BE: {n: 'Buyer Exhaustion', c: 'colBE'}, SE: {n: 'Seller Exhaustion', c: 'colSE'}};
+const R = 3; // empty candles kept at the right edge
+let tf = 3e5, slot = 64, off = 0, vz = 1, auto = true, pLo = 0, pHi = 1, tool = 'x';
+let diag = {}, fallbackDone = false;
+let TW = 0, tape = [], tapeDirty = true, alSeen = null;
+let W = 0, H = 0, dpr = Math.min(2, devicePixelRatio || 1);
+let candles = new Map(), cver = 0, keysC = [], keysV = -1, heat = [], ob = {b: new Map(), a: new Map()};
+let synced = false, buf = [], last = 0, lastT = 0, seen = new Set(), socks = [], run = 0, S = '', stat = {};
+let clus = new Map(), clusA = [], bigL = new Map(), bigH = [], tkLo = Infinity, tkHi = -Infinity;
+let fpFrom = null, histBusy = false, histEnd = false, lazyBusy = false, lazyBackoff = 0, lazyLeft = 0;
+let mx = null, my = null, curTk = .1, dirty = true, G = null, drw = [], pend = null, lastAx = 0, tipE = null;
+let evMemo = {k: '', v: []}, liveSeen = new Map(), btMemo = {t: 0, v: Infinity, sv: 0};
+let hc = document.createElement('canvas'), hx = hc.getContext('2d'), hk = '', hOff = 0, hBuilt = 0;
+const on = ex => $('x' + ex.toLowerCase()).checked;
+const fl = id => $(id).checked;
+const sleep = ms => new Promise(r => setTimeout(r, ms));
+const clp = x => Math.max(0, Math.min(1, x));
+function setStat(k, v){ stat[k] = v; $('st').textContent = Object.entries(stat).map(e => e.join(':')).join('  '); }
+function resize(){
+  TW = innerWidth >= 900 ? 250 : 0; $('tape').style.display = TW ? 'block' : 'none';
+  W = Math.max(200, innerWidth - 40 - TW); H = Math.max(200, innerHeight - 40); tapeDirty = true;
+  cv.width = W * dpr; cv.height = H * dpr; cv.style.width = W + 'px'; cv.style.height = H + 'px'; dirty = true;
+}
+addEventListener('resize', resize); resize();
+if (W < 640) slot = 56;
+
+const HS = [];
+(function(){
+  const st = [[0,[8,16,48]],[.25,[20,70,190]],[.5,[20,190,200]],[.72,[235,215,60]],[.88,[255,120,30]],[1,[255,70,60]]];
+  for (let i = 0; i < 64; i++){
+    const v = i / 63; let j = 1; while (j < st.length - 1 && st[j][0] < v) j++;
+    const a = st[j-1], b = st[j], f = (v - a[0]) / (b[0] - a[0]);
+    HS.push(`rgba(${a[1].map((x, k) => Math.round(x + (b[1][k] - x) * f)).join(',')},${(.2 + .75 * v).toFixed(2)})`);
+  }
+})();
+const fmt = v => {
+  const a = Math.abs(v), s = v < 0 ? '-' : '';
+  return s + (a >= 1e6 ? (a/1e6).toFixed(2)+'M' : a >= 1e3 ? (a/1e3).toFixed(a >= 1e5 ? 0 : 2)+'K' : a >= 100 ? a.toFixed(0) : a >= 10 ? a.toFixed(1) : a.toFixed(2));
+};
+const sgn = v => (v >= 0 ? '+' : '') + fmt(v);
+const pf = (p, d) => p.toLocaleString('en-US', {minimumFractionDigits: d == null ? 2 : d, maximumFractionDigits: d == null ? 2 : d});
+const decFor = st => Math.max(2, Math.min(6, Math.ceil(-Math.log10(st))));
+function getKeys(){ if (keysV !== cver){ keysC = [...candles.keys()].sort((a, b) => a - b); keysV = cver; } return keysC; }
+function lowerBound(a, v){ let l = 0, h = a.length; while (l < h){ const m = (l + h) >> 1; a[m] < v ? l = m + 1 : h = m; } return l; }
+function rgba(hex, a){ const p = parseInt(hex.slice(1), 16); return `rgba(${p >> 16},${(p >> 8) & 255},${p & 255},${a})`; }
+function lerpHex(a, b, t){
+  const pa = parseInt(a.slice(1), 16), pb = parseInt(b.slice(1), 16);
+  return `rgb(${((1-t)*(pa>>16)+t*(pb>>16))|0},${((1-t)*((pa>>8)&255)+t*((pb>>8)&255))|0},${((1-t)*(pa&255)+t*(pb&255))|0})`;
+}
+
+// ===================== DATA =====================
+function bubWin(){
+  const m = SET.timeWin; if (m.startsWith('Fixed')) return {'Fixed 250ms': 250, 'Fixed 1s': 1000, 'Fixed 5s': 5000, 'Fixed 30s': 30000}[m];
+  return Math.max(1000, Math.min(60000, tf / 5));
+}
+function addCluster(T, p, q, m){
+  const w = bubWin(), band = SET.priceGroup.startsWith('Auto') ? curTk : curTk * Math.max(1, SET.ticksBand | 0);
+  const key = Math.floor(T / w) + '|' + Math.floor(p / band + 1e-9) + '|' + w; let c = clus.get(key);
+  if (!c){
+    c = {key, T0: T, T1: T, pv: 0, qq: 0, buyQ: 0, sellQ: 0, buyN: 0, sellN: 0, n: 0}; clus.set(key, c); clusA.push(c);
+    if (clusA.length > 60000) clusA.splice(0, 15000).forEach(o => clus.delete(o.key));
+  }
+  if (T > c.T1) c.T1 = T; c.pv += p * q; c.qq += q; c.n++;
+  if (m){ c.sellQ += q; c.sellN += p * q; } else { c.buyQ += q; c.buyN += p * q; }
+}
+function addTrade(id, T, p, q, m){
+  if (seen.has(id)) return; seen.add(id); if (seen.size > 8e5) seen.clear();
+  const t = Math.floor(T / tf) * tf;
+  let c = candles.get(t);
+  if (c && c.k) return;
+  if (!c){ c = {t, o:p, h:p, l:p, c:p, ot:T, ct:T, lv:new Map(), buy:0, sell:0, n:0, fp: fpFrom === null ? true : t >= fpFrom}; candles.set(t, c); cver++; }
+  if (T < c.ot){ c.o = p; c.ot = T; }
+  if (T >= c.ct){ c.c = p; c.ct = T; }
+  c.h = Math.max(c.h, p); c.l = Math.min(c.l, p); c.n++;
+  const k = Math.round(p * 100);
+  let l = c.lv.get(k); if (!l){ l = [0, 0]; c.lv.set(k, l); }
+  if (m){ l[0] += q; c.sell += q; } else { l[1] += q; c.buy += q; }   // m=true -> aggressive SELL
+  if (T >= lastT){ lastT = T; last = p; }
+  if (p < tkLo) tkLo = p; if (p > tkHi) tkHi = p;
+  addCluster(T, p, q, m);
+  if (Date.now() - T < 15000){ tape.unshift([T, p, q, m]); if (tape.length > 80) tape.length = 80; tapeDirty = true; }
+}
+function sock(url, myRun, onopen, onmsg, ping, name){
+  const open = () => {
+    if (myRun !== run) return;
+    const w = new WebSocket(url); socks.push(w); let iv;
+    w.onopen = () => { setStat(name, 'ok'); if (onopen) onopen(w); if (ping) iv = setInterval(() => w.readyState === 1 && w.send(ping.msg), ping.ms); };
+    w.onmessage = e => { try { onmsg(JSON.parse(e.data), w); } catch(x){} };
+    w.onclose = () => { clearInterval(iv); if (myRun === run){ setStat(name, 'retry'); setTimeout(open, 2000); } };
+    w.onerror = () => {};
+  };
+  open();
+}
+// recent trades, newest first, walking backwards by trade id (no gap to the live stream)
+async function backfill(sym, myRun, winStart){
+  let oldest = Infinity, id = null, ok = false;
+  try {
+    for (let i = 0; i < CFG.bfPages && myRun === run; i++){
+      const u = `https://fapi.binance.com/fapi/v1/aggTrades?symbol=${sym}&limit=1000` + (id == null ? '' : `&fromId=${id}`);
+      const a = await (await fetch(u)).json();
+      if (!Array.isArray(a) || !a.length) break;
+      a.forEach(x => addTrade('BN' + x.a, x.T, +x.p, +x.q, x.m)); ok = true;
+      oldest = Math.min(oldest, a[0].T);
+      if (a[0].T <= winStart || a[0].a <= 0) break;
+      id = Math.max(0, a[0].a - 1000);
+    }
+  } catch(e){}
+  return ok ? oldest : null;
+}
+async function loadRec(myRun, from){
+  const typed = $('rec').value.trim().replace(/\/$/, '');
+  const base = typed || (location.protocol.indexOf('http') === 0 ? location.origin : '');
+  if (!base) return null;
+  try {
+    const j = await (await fetch(`${base}/history?symbol=${S}&from=${from}`)).json();
+    if (myRun !== run || !j || !j.trades) return null;
+    let minT = Infinity;
+    j.trades.forEach(x => { if (on(x[0])){ addTrade(x[1], x[2], x[3], x[4], x[5]); if (x[2] < minT) minT = x[2]; } });
+    (j.heat || []).forEach(h => heat.push(h)); heat.sort((a, b) => a.t - b.t);
+    setStat('REC', 'ok'); return minT;
+  } catch(e){ if (typed) setStat('REC', 'err'); return null; }
+}
+// Binance klines: complete OHLC + taker-buy volume history for every timeframe from 1m up
+async function loadKlines(myRun, endTime){
+  if (!KI[tf]) return 0;
+  const u = `https://fapi.binance.com/fapi/v1/klines?symbol=${S}&interval=${KI[tf]}&limit=1000` + (endTime ? `&endTime=${endTime}` : '');
+  const j = await (await fetch(u)).json();
+  if (myRun !== run || !Array.isArray(j)) return -1;
+  const now = Date.now(); let add = 0;
+  j.forEach(x => {
+    const t = +x[0]; if (candles.has(t) || t + tf > now) return;
+    if (fpFrom !== null && t >= fpFrom) return;
+    const vol = +x[5], buy = +x[9];
+    candles.set(t, {t, o:+x[1], h:+x[2], l:+x[3], c:+x[4], ot:t, ct:t + tf - 1, lv:new Map(), buy, sell:vol - buy, n:+x[8], fp:false, k:true}); add++;
+  });
+  if (add) cver++;
+  if (!last && j.length) last = +j[j.length - 1][4];
+  return add;
+}
+async function loadMore(){
+  if (histBusy || histEnd || tf < 6e4 || candles.size > 30000) return;
+  const ks = getKeys(); if (!ks.length) return;
+  histBusy = true; const myRun = run;
+  try { const n = await loadKlines(myRun, ks[0] - 1); if (n === 0) histEnd = true; } catch(e){}
+  histBusy = false; dirty = true;
+}
+async function refreshRecent(){
+  if (tf < 6e4 || fpFrom === null) return; const myRun = run;
+  try {
+    const j = await (await fetch(`https://fapi.binance.com/fapi/v1/klines?symbol=${S}&interval=${KI[tf]}&limit=3`)).json();
+    if (myRun !== run || !Array.isArray(j)) return;
+    const now = Date.now();
+    j.forEach(x => {
+      const t = +x[0]; if (t + tf > now) return;
+      const vol = +x[5], buy = +x[9]; let c = candles.get(t);
+      if (!c){ candles.set(t, {t, o:+x[1], h:+x[2], l:+x[3], c:+x[4], ot:t, ct:t + tf - 1, lv:new Map(), buy, sell:vol - buy, n:+x[8], fp:false, k:true}); cver++; }
+      else if (!c.fp){ c.o = +x[1]; c.h = +x[2]; c.l = +x[3]; c.c = +x[4]; c.buy = buy; c.sell = vol - buy; c.k = true; c.lv = new Map(); delete c.an; }
+    });
+    dirty = true;
+  } catch(e){}
+}
+// old footprint candles load one at a time from Binance aggTrades; used only if the totals match the kline
+async function lazyStep(){
+  if (lazyBusy || !G || Date.now() < lazyBackoff || fpFrom === null) return;
+  if (!fl('fp') || tf < 6e4 || tf > 18e5 || slot < 26) return;
+  const myRun = run, now = Date.now();
+  const todo = (G.vis || []).filter(c => c.k && !c.fp && !c.fail && c.t + tf <= now);
+  lazyLeft = todo.length; if (!todo.length) return;
+  const c = todo.sort((a, b) => b.t - a.t)[0]; lazyBusy = true;
+  try {
+    const tmp = new Map(), ids = new Set(); let st = c.t, buy = 0, sell = 0, done = false, pages = 0;
+    while (pages < CFG.lazyPages && myRun === run){
+      const r = await fetch(`https://fapi.binance.com/fapi/v1/aggTrades?symbol=${S}&startTime=${st}&endTime=${c.t + tf - 1}&limit=1000`);
+      if (r.status === 429 || r.status === 418){ lazyBackoff = Date.now() + 60000; lazyBusy = false; return; }
+      const a = await r.json(); if (!Array.isArray(a)) break;
+      pages++; let added = 0;
+      a.forEach(x => {
+        if (ids.has(x.a)) return; ids.add(x.a); added++;
+        const k = Math.round(+x.p * 100); let l = tmp.get(k); if (!l){ l = [0, 0]; tmp.set(k, l); }
+        if (x.m){ l[0] += +x.q; sell += +x.q; } else { l[1] += +x.q; buy += +x.q; }
+      });
+      if (a.length < 1000){ done = true; break; }
+      st = added ? a[a.length - 1].T : a[a.length - 1].T + 1;
+      await sleep(700);
+    }
+    if (myRun !== run){ lazyBusy = false; return; }
+    const kv = c.buy + c.sell;
+    if (done && Math.abs(buy + sell - kv) <= Math.max(kv * .02, 1e-9)){ c.lv = tmp; c.fp = true; c.buy = buy; c.sell = sell; delete c.an; cver++; } else c.fail = true;
+  } catch(e){ c.fail = true; }
+  lazyBusy = false; dirty = true;
+}
+function connect(){
+  run++; const myRun = run;
+  socks.forEach(w => { w.onmessage = null; w.onclose = null; w.close(); }); socks = [];
+  candles.clear(); cver++; heat = []; seen.clear(); clus.clear(); clusA = []; stat = {}; synced = false; buf = []; last = 0; lastT = 0;
+  bigL.clear(); bigH = []; tkLo = Infinity; tkHi = -Infinity; fpFrom = null; histBusy = false; histEnd = false; lazyBusy = false; lazyLeft = 0;
+  off = 0; pend = null; tipE = null; hk = ''; evMemo.k = ''; alSeen = null; tape = []; tapeDirty = true;
+  ob = {b: new Map(), a: new Map()};
+  S = $('sym').value.trim().toUpperCase();
+  try { drw = JSON.parse(localStorage['smbs_dr_' + S] || '[]'); } catch(e){ drw = []; }
+  const s = S.toLowerCase(), base = S.replace(/(USDT|USDC)$/, '');
+  $('st').textContent = 'connecting...'; diag = {};
+  setTimeout(() => { if (myRun === run && !candles.size) probe(); }, 6000);
+  sock(`wss://fstream.binance.com/ws/${s}@depth@100ms`, myRun, async () => {
+    synced = false; buf = [];
+    try {
+      const j = await (await fetch(`https://fapi.binance.com/fapi/v1/depth?symbol=${S}&limit=1000`)).json();
+      if (myRun !== run) return;
+      ob.b = new Map(j.bids.map(x => [+x[0], +x[1]])); ob.a = new Map(j.asks.map(x => [+x[0], +x[1]]));
+      buf.filter(d => d.u > j.lastUpdateId).forEach(d => applyD(d)); buf = []; synced = true;
+    } catch(e){ setStat('BK', 'err'); }
+  }, d => { if (d.e === 'depthUpdate') synced ? applyD(d) : buf.push(d); }, null, 'BK');
+  if (on('BN')) sock(`wss://fstream.binance.com/ws/${s}@aggTrade`, myRun, null,
+    d => { if (d.e === 'aggTrade') addTrade('BN' + d.a, d.T, +d.p, +d.q, d.m); }, null, 'BN');
+  if (on('BY')) sock('wss://stream.bybit.com/v5/public/linear', myRun,
+    w => w.send(JSON.stringify({op: 'subscribe', args: ['publicTrade.' + S]})),
+    d => { if (d.topic && d.topic.indexOf('publicTrade') === 0) d.data.forEach(x => addTrade('BY' + x.i, x.T, +x.p, +x.v, x.S === 'Sell')); },
+    {msg: JSON.stringify({op: 'ping'}), ms: 20000}, 'BY');
+  if (on('OK')) okx(myRun, base);
+  if (on('HL')) sock('wss://api.hyperliquid.xyz/ws', myRun,
+    w => w.send(JSON.stringify({method: 'subscribe', subscription: {type: 'trades', coin: base}})),
+    d => { if (d.channel === 'trades') d.data.forEach(x => addTrade('HL' + x.tid, x.time, +x.px, +x.sz, x.side === 'A')); },
+    {msg: JSON.stringify({method: 'ping'}), ms: 50000}, 'HL');
+  (async () => {
+    const t0 = Date.now(), vcount = Math.ceil(W / slot) + 1;
+    const winStart = t0 - Math.min(Math.max(vcount * tf, 3 * tf), 2 * 36e5);
+    let cs = t0;
+    const rec = await loadRec(myRun, Math.min(winStart, t0 - 18e5));
+    if (rec != null) cs = Math.min(cs, rec);
+    else if (on('BN')){ const o = await backfill(S, myRun, winStart); if (o != null) cs = Math.min(cs, o); else setStat('HIST', 'none'); }
+    if (myRun !== run) return;
+    if (['BY', 'OK', 'HL'].some(on)) cs = Math.max(cs, t0);
+    fpFrom = Math.ceil(cs / tf) * tf;
+    for (const [t, c] of [...candles]){ if (!c.k && t < fpFrom) candles.delete(t); else if (!c.k) c.fp = true; }
+    clusA.sort((a, b) => a.T0 - b.T0);   // backfill arrives newest page first; the bubble drawing expects time order
+    cver++;
+    try { await loadKlines(myRun); } catch(e){ setStat('KL', 'err'); }
+    if (myRun === run){ setStat('FP', 'from ' + new Date(fpFrom).toLocaleTimeString([], {hour: '2-digit', minute: '2-digit'})); dirty = true; }
+  })();
+}
+async function probe(){
+  const myRun = run;
+  const t = async (name, url) => { try { const r = await fetch(url); diag[name] = r.status + (r.ok ? ' OK' : ' REFUSED'); } catch(e){ diag[name] = 'NETWORK ERROR (' + (e && e.message || 'blocked') + ')'; } dirty = true; };
+  await t('Binance REST', 'https://fapi.binance.com/fapi/v1/ping');
+  await t('Bybit REST', 'https://api.bybit.com/v5/market/time');
+  if (myRun !== run) return;
+  diag.sockets = socks.length ? socks.map(w => w.url.split('/')[2] + ' ' + ['connecting', 'open', 'closing', 'closed'][w.readyState]).join(' | ') : 'none';
+  if (!/OK/.test(diag['Binance REST']) && /OK/.test(diag['Bybit REST']) && !fallbackDone){
+    fallbackDone = true; $('xby').checked = true; diag.note = 'Binance unreachable: switched on Bybit live trades (no history, no order book)'; connect(); return;
+  }
+  dirty = true;
+}
+function applyD(d){
+  (d.b || []).forEach(x => { +x[1] === 0 ? ob.b.delete(+x[0]) : ob.b.set(+x[0], +x[1]); });
+  (d.a || []).forEach(x => { +x[1] === 0 ? ob.a.delete(+x[0]) : ob.a.set(+x[0], +x[1]); });
+}
+async function okx(myRun, base){
+  const inst = base + '-USDT-SWAP'; let cvv = 1;
+  try {
+    const j = await (await fetch('https://www.okx.com/api/v5/public/instruments?instType=SWAP&instId=' + inst)).json();
+    const d = j.data[0]; cvv = +d.ctVal * (+d.ctMult || 1); if (!(cvv > 0)) throw 0;
+  } catch(e){ setStat('OK', 'no-inst'); return; }
+  if (myRun !== run) return;
+  sock('wss://ws.okx.com:8443/ws/v5/public', myRun,
+    w => w.send(JSON.stringify({op: 'subscribe', args: [{channel: 'trades', instId: inst}]})),
+    d => { if (d.data && d.arg && d.arg.channel === 'trades') d.data.forEach(x => addTrade('OK' + x.tradeId, +x.ts, +x.px, +x.sz * cvv, x.side === 'sell')); },
+    {msg: 'ping', ms: 20000}, 'OK');
+}
+
+// ---- limit orders: track large resting orders from the book, how long they live, filled vs pulled ----
+function trackBig(now, Rr){
+  const cur = new Map(), lv = [];
+  for (const [side, mp] of [['bid', ob.b], ['ask', ob.a]]) for (const [p, q] of mp){
+    if (Math.abs(p - last) > Rr) continue;
+    const x = {side, p, q, n: p * q}; cur.set(side + p, x); lv.push(x);
+  }
+  if (lv.length < 30){ tkLo = Infinity; tkHi = -Infinity; return; }
+  const ns = lv.map(x => x.n).sort((a, b) => a - b), thr = ns[Math.floor(ns.length / 2)] * SET.limK;
+  for (const [k, e] of bigL){
+    const x = cur.get(k);
+    if (x && x.n >= thr * .5){ e.q = x.q; e.n = x.n; if (x.n > e.peak) e.peak = x.n; }
+    else {
+      const filled = e.side === 'bid' ? tkLo <= e.p : tkHi >= e.p;
+      if (now - e.since >= SET.limAge * 1000){ bigH.push({side: e.side, p: e.p, q: e.q, n: e.peak, since: e.since, until: now, kind: filled ? 'FILLED' : 'PULLED'}); if (bigH.length > 400) bigH.shift(); }
+      bigL.delete(k);
+    }
+  }
+  lv.filter(x => x.n >= thr).sort((a, b) => b.n - a.n).slice(0, SET.limMax).forEach(x => {
+    const k = x.side + x.p;
+    if (!bigL.has(k)) bigL.set(k, {side: x.side, p: x.p, q: x.q, n: x.n, peak: x.n, since: now});
+  });
+  tkLo = Infinity; tkHi = -Infinity;
+}
+setInterval(() => {
+  if (!synced || !last) return;
+  const tk = curTk, Rr = last * .004, m = new Map();
+  for (const side of [ob.b, ob.a]) for (const [p, q] of side){
+    if (Math.abs(p - last) > Rr) continue;
+    const r = Math.floor(p / tk + 1e-9); m.set(r, (m.get(r) || 0) + q);
+  }
+  let mxv = 0; m.forEach(v => { if (v > mxv) mxv = v; });
+  const a = []; m.forEach((q, r) => { if (q >= mxv * .01) a.push(r, q); });
+  heat.push({t: Date.now(), tk, a: Float64Array.from(a)}); if (heat.length > 5400) heat.shift();
+  trackBig(Date.now(), Rr); bubAlerts(); if (SET.aeAlert && fl('sg')) aeAlerts(); dirty = true;
+}, 1000);
+
+// ---- orderflow bubbles: clusters of aggressive trades by time window and price band ----
+function renderTape(){
+  if (!TW || !tapeDirty) return; tapeDirty = false;
+  const n = Math.max(5, Math.floor((innerHeight - 40 - 34) / 17)), rows = tape.slice(0, n);
+  const big = rows.length ? rows.map(r => r[2]).sort((a, b) => a - b)[Math.floor(rows.length * .9)] : 0;
+  $('tape').innerHTML = '<div class="th"><span>TIME</span><span>PRICE</span><span>SIZE</span><span>SIDE</span></div>' +
+    rows.map(r => `<div class="tr ${r[3] ? 's' : 'b'}${r[2] >= big && big > 0 ? ' big' : ''}"><span>${new Date(r[0]).toTimeString().slice(0, 8)}</span><span>${pf(r[1], 2)}</span><span>${r[2].toFixed(2)}</span><span>${r[3] ? 'SELL' : 'BUY'}</span></div>`).join('');
+}
+function aeAlerts(){
+  try {
+    const evs = buildEvents(curTk).filter(e => e.status === 'confirmed' || (e.status === 'candidate' && SET.showDev)), first = !alSeen;
+    if (first) alSeen = new Set();
+    evs.forEach(e => {
+      const k = S + tf + e.t + e.kind; if (alSeen.has(k)) return; alSeen.add(k); if (first) return;
+      beep(); const msg = EVN[e.kind].n + ' ' + e.score + ' @ ' + pf((e.lo + e.hi) / 2);
+      setStat('ALERT', msg); setTimeout(() => { delete stat.ALERT; $('st').textContent = Object.entries(stat).map(x => x.join(':')).join('  '); }, 6000);
+      try { if (window.Notification && Notification.permission === 'granted') new Notification(S + ' ' + tfName(), {body: msg}); } catch(x){}
+    });
+  } catch(e){}
+}
+function bubVal(c){
+  const q = SET.unit.startsWith('Quote'), b = q ? c.buyN : c.buyQ, s = q ? c.sellN : c.sellQ;
+  return SET.sizeBy === 'Delta' ? Math.abs(b - s) : b + s;
+}
+function bubThr(){
+  if (SET.thrMode.startsWith('Fixed')) return SET.fixedVal > 0 ? SET.fixedVal : Infinity;
+  const now = Date.now(); if (now - btMemo.t < 1000 && btMemo.sv === setVer) return btMemo.v;
+  const arr = clusA.slice(-4000).map(bubVal).sort((a, b) => a - b);
+  const v = arr.length >= 30 ? arr[Math.min(arr.length - 1, Math.floor(arr.length * (1 - SET.topPct / 100)))] : Infinity;
+  btMemo = {t: now, v, sv: setVer}; return v;
+}
+let ac = null;
+function beep(){ try { ac = ac || new (window.AudioContext || window.webkitAudioContext)(); const o = ac.createOscillator(), g2 = ac.createGain(); o.frequency.value = 880; g2.gain.value = .05; o.connect(g2); g2.connect(ac.destination); o.start(); o.stop(ac.currentTime + .08); } catch(e){} }
+function bubAlerts(){
+  if (!SET.flash && !SET.sound) return;
+  const thr = bubThr(), now = Date.now(); if (!isFinite(thr)) return;
+  for (let i = clusA.length - 1; i >= 0 && i > clusA.length - 60; i--){
+    const c = clusA[i]; if (c.al || now - c.T1 > 5000) continue;
+    const v = bubVal(c); if (v < thr) continue; c.al = 1;
+    if (SET.sound) beep();
+    if (SET.flash){ setStat('BUBBLE', (c.buyN >= c.sellN ? 'BUY ' : 'SELL ') + fmt(v)); setTimeout(() => { delete stat.BUBBLE; $('st').textContent = Object.entries(stat).map(e => e.join(':')).join('  '); }, 4000); }
+  }
+}
+
+// ===================== ANALYSIS =====================
+function agg(c, tk){
+  const m = new Map();
+  for (const [k, v] of c.lv){
+    const r = Math.floor(k / 100 / tk + 1e-9); let x = m.get(r);
+    if (!x){ x = [0, 0]; m.set(r, x); }
+    x[0] += v[0]; x[1] += v[1];
+  }
+  return m;
+}
+// per-candle footprint analysis (rows are [row, sellVol, buyVol]); Classic rules kept as they were
+function ana(c, tk){
+  const closed = Date.now() >= c.t + tf, vol = c.buy + c.sell;
+  if (closed && c.an && c.an.tk === tk && c.an.v === vol && c.an.sv === setVer) return c.an;
+  const rows = [...agg(c, tk).entries()].map(([r, v]) => [r, v[0], v[1]]).sort((a, b) => a[0] - b[0]), n = rows.length;
+  const o = {tk, v: vol, sv: setVer, rows, n, tot: 0, avg: 0, mx: 0, poc: null, vah: null, val: null, ia: new Set(), ib: new Set(), stk: [], zones: [], sigs: [], trap: {bh: null, sl: null}};
+  if (n){
+    let tot = 0, mxv = 0, pi = 0; rows.forEach((x, i) => { const s = x[1] + x[2]; tot += s; if (s > mxv){ mxv = s; pi = i; } });
+    o.tot = tot; o.avg = tot / n; o.mx = mxv; o.poc = rows[pi][0];
+    let a0 = pi, a1 = pi, cum = mxv;
+    while (cum < .7 * tot && (a0 > 0 || a1 < n - 1)){
+      const u = a1 < n - 1 ? rows[a1 + 1][1] + rows[a1 + 1][2] : -1, d = a0 > 0 ? rows[a0 - 1][1] + rows[a0 - 1][2] : -1;
+      if (u >= d){ a1++; cum += u; } else { a0--; cum += d; }
+    }
+    o.vah = (rows[a1][0] + 1) * tk; o.val = rows[a0][0] * tk;
+    const avg = o.avg, byR = new Map(rows.map(x => [x[0], x])), ia = [], ib = [];
+    rows.forEach(([r, b, a]) => {
+      const dn = byR.get(r - 1), up = byR.get(r + 1);
+      if (dn && a >= SET.imbR * Math.max(dn[1], avg * .05) && a > avg * .6){ ia.push(r); o.ia.add(r); }
+      if (up && b >= SET.imbR * Math.max(up[2], avg * .05) && b > avg * .6){ ib.push(r); o.ib.add(r); }
+    });
+    if (n >= 3){
+      const L = rows.slice(0, 2), Hh = rows.slice(-2), base = avg * 2;
+      const sl = L.reduce((s, x) => s + x[1], 0), bh = Hh.reduce((s, x) => s + x[2], 0);
+      const lowTop = (L[L.length - 1][0] + 1) * tk, highBot = Hh[0][0] * tk;
+      if (sl >= CFG.absK * base && c.c > lowTop){
+        const hv = sl >= CFG.heavyK * base;
+        o.sigs.push({side: 'low', rows: L, col: '#22d3ee', heavy: hv, txt: hv ? 'H-ABS' : 'ABS'});
+        o.zones.push({type: 'D', lo: L[0][0] * tk, hi: lowTop, str: hv ? 2 : 1});
+      }
+      if (bh >= CFG.absK * base && c.c < highBot){
+        const hv = bh >= CFG.heavyK * base;
+        o.sigs.push({side: 'high', rows: Hh, col: '#ff4fd8', heavy: hv, txt: hv ? 'H-ABS' : 'ABS'});
+        o.zones.push({type: 'S', lo: highBot, hi: (Hh[Hh.length - 1][0] + 1) * tk, str: hv ? 2 : 1});
+      }
+      if (n >= CFG.exhRows){
+        const v = x => x[1] + x[2];
+        const e0 = rows[0], e1 = rows[1], e2 = rows[2];
+        if (v(e0) < v(e1) && v(e1) < v(e2) && v(e0) <= CFG.exhFrac * avg) o.sigs.push({side: 'low', rows: [e0], col: '#ffb020', heavy: false, txt: 'EXH'});
+        const h0 = rows[n-1], h1 = rows[n-2], h2 = rows[n-3];
+        if (v(h0) < v(h1) && v(h1) < v(h2) && v(h0) <= CFG.exhFrac * avg) o.sigs.push({side: 'high', rows: [h0], col: '#ffb020', heavy: false, txt: 'EXH'});
+      }
+      const runs = (arr, side) => {
+        let s = 0;
+        for (let i = 1; i <= arr.length; i++){
+          if (i === arr.length || arr[i] !== arr[i - 1] + 1){
+            if (i - s >= SET.stackN){
+              const r0 = arr[s], r1 = arr[i - 1];
+              o.stk.push({side, r0, r1});
+              o.zones.push({type: side === 'buy' ? 'D' : 'S', lo: r0 * tk, hi: (r1 + 1) * tk, str: 1});
+            }
+            s = i;
+          }
+        }
+      };
+      runs(ia, 'buy'); runs(ib, 'sell');
+    }
+    if (n >= 5){
+      const k0 = Math.floor(n * .6), k1 = Math.ceil(n * .4);
+      let best = 0;
+      for (let i = k0; i < n - 1; i++){
+        if (rows[i + 1][0] !== rows[i][0] + 1) continue;
+        const a = rows[i][2] + rows[i + 1][2], b = rows[i][1] + rows[i + 1][1];
+        if (a > b && a >= CFG.trapK * 2 * avg && a > best){ best = a; o.trap.bh = {lo: rows[i][0] * tk, hi: (rows[i + 1][0] + 1) * tk}; }
+      }
+      best = 0;
+      for (let i = 0; i < k1 - 1; i++){
+        if (rows[i + 1][0] !== rows[i][0] + 1) continue;
+        const b = rows[i][1] + rows[i + 1][1], a = rows[i][2] + rows[i + 1][2];
+        if (b > a && b >= CFG.trapK * 2 * avg && b > best){ best = b; o.trap.sl = {lo: rows[i][0] * tk, hi: (rows[i + 1][0] + 1) * tk}; }
+      }
+    }
+  }
+  if (closed) c.an = o;
+  return o;
+}
+
+// ---- scored absorption / exhaustion engine ----
+function pctRank(v, arr){ if (!arr.length) return 0; let c = 0; for (const x of arr) if (x <= v) c++; return c / arr.length; }
+function clusterWin(rows, side, levels){
+  const n = rows.length, lim = Math.max(levels + 2, Math.ceil(n * .4)); let best = null;
+  const from = side === 'low' ? 0 : n - lim, to = side === 'low' ? lim - levels : n - levels;
+  for (let i = Math.max(0, from); i <= Math.min(n - levels, to); i++){
+    let ok = true; for (let j = 1; j < levels; j++) if (rows[i + j][0] !== rows[i + j - 1][0] + 1){ ok = false; break; }
+    if (!ok) continue;
+    let s = 0, b = 0, mxc = 0; for (let j = 0; j < levels; j++){ s += rows[i + j][1]; b += rows[i + j][2]; mxc = Math.max(mxc, rows[i + j][1], rows[i + j][2]); }
+    const aggr = side === 'low' ? s : b;
+    if (!best || aggr > best.aggr) best = {i, s, b, aggr, mxc};
+  }
+  return best;
+}
+function heatAt(t, price){
+  if (!heat.length) return null;
+  let l = 0, h = heat.length - 1; while (l < h){ const m = (l + h) >> 1; heat[m].t < t ? l = m + 1 : h = m; }
+  const s = heat[l]; if (!s || Math.abs(s.t - t) > 60000) return null;
+  const r = Math.floor(price / s.tk + 1e-9); let q = 0, mq = 0;
+  for (let i = 0; i < s.a.length; i += 2){ if (s.a[i + 1] > mq) mq = s.a[i + 1]; if (s.a[i] === r) q = s.a[i + 1]; }
+  return mq ? q / mq : null;
+}
+function nearBig(price, tk, t){
+  if (!bigL.size && !bigH.length) return null;
+  const tol = 3 * tk; let hit = false;
+  bigL.forEach(e => { if (Math.abs(e.p - price) <= tol && e.since <= t + tf) hit = true; });
+  bigH.forEach(e => { if (Math.abs(e.p - price) <= tol && e.since <= t + tf && e.until >= t - tf) hit = true; });
+  return hit;
+}
+function buildEvents(tk){
+  const ks = getKeys(), L = ks.length; if (!L) return [];
+  const now = Date.now(), lastC = candles.get(ks[L - 1]);
+  const key = [cver, lastC.buy + lastC.sell, setVer, tk, tf, Math.floor(now / tf)].join('|');
+  if (evMemo.k === key) return evMemo.v;
+  const out = [], seenNow = new Set();
+  if (SET.engine === 'Scored' && (SET.aeAbs || SET.aeExh)){
+    const cs = ks.map(k => candles.get(k)), vol = cs.map(c => c.buy + c.sell), pv = [0], pt = [0];
+    cs.forEach((c, i) => { const t = i ? Math.max(c.h - c.l, Math.abs(c.h - cs[i-1].c), Math.abs(c.l - cs[i-1].c)) : c.h - c.l; pv.push(pv[i] + vol[i]); pt.push(pt[i] + t); });
+    const atrAt = i => { const a = Math.max(0, i - SET.atrLen + 1); return (pt[i + 1] - pt[a]) / (i + 1 - a); };
+    const bvAt = i => { const a = Math.max(0, i - SET.lookback), n = i - a; return n ? (pv[i] - pv[a]) / n : vol[i]; };
+    const vw = SET.ctxVW ? buildVwap(ks) : null;
+    const sensM = {Low: .92, Medium: 1, High: 1.1}[SET.sens] || 1, lv = Math.max(1, SET.clusterLevels | 0), w = SET.ctxW / 100;
+    const ds = Math.min(.95, Math.max(.55, SET.deltaStr / 100));
+    const profMemo = new Map();
+    const priorProf = i => {
+      if (profMemo.has(i)) return profMemo.get(i);
+      const m = new Map(); let cnt = 0, prev = null;
+      for (let j = i - 1; j >= 0 && cnt < 20; j--){
+        if (!cs[j].fp) continue; const a = ana(cs[j], tk); if (!a.n) continue;
+        if (!prev) prev = {poc: (a.poc + .5) * tk, vah: a.vah, val: a.val};
+        a.rows.forEach(r => m.set(r[0], (m.get(r[0]) || 0) + r[1] + r[2])); cnt++;
+      }
+      let res = null;
+      if (m.size){
+        const rs = [...m.entries()].sort((a, b) => a[0] - b[0]); let tot = 0, pi = 0; rs.forEach((x, k) => { tot += x[1]; if (x[1] > rs[pi][1]) pi = k; });
+        let a0 = pi, a1 = pi, cum = rs[pi][1];
+        while (cum < .7 * tot && (a0 > 0 || a1 < rs.length - 1)){ const u = a1 < rs.length - 1 ? rs[a1 + 1][1] : -1, d = a0 > 0 ? rs[a0 - 1][1] : -1; if (u >= d){ a1++; cum += u; } else { a0--; cum += d; } }
+        res = {poc: (rs[pi][0] + .5) * tk, vah: (rs[a1][0] + 1) * tk, val: rs[a0][0] * tk, prev};
+      }
+      profMemo.set(i, res); return res;
+    };
+    const ctxScore = (i, side, price) => {
+      const parts = [];
+      if (SET.ctxVW && vw && vw[i] && vw[i].m != null) parts.push(side === 'low' ? (price < vw[i].m ? 1 : .35) : (price > vw[i].m ? 1 : .35));
+      if (SET.ctxVP || SET.ctxMP){
+        const p2 = priorProf(i);
+        if (p2){
+          const near = p => Math.abs(price - p) <= 4 * tk;
+          if (SET.ctxVP) parts.push(near(p2.poc) || near(p2.vah) || near(p2.val) ? 1 : .35);
+          if (SET.ctxMP && p2.prev) parts.push(near(p2.prev.vah) || near(p2.prev.val) || near(p2.prev.poc) ? 1 : .4);
+        }
+      }
+      if (SET.ctxDOM){ const h = nearBig(price, tk, cs[i].t); if (h != null) parts.push(h ? 1 : .4); }
+      if (SET.ctxHM){ const h = heatAt(cs[i].t + tf, price); if (h != null) parts.push(h >= .5 ? 1 : .4); }
+      return parts.length ? parts.reduce((s, x) => s + x, 0) / parts.length : .5;
+    };
+    for (let i = 0; i < L; i++){
+      const c = cs[i]; if (!c.fp) continue; const a = ana(c, tk); if (a.n < 3) continue;
+      if (SET.minTrades > 0 && (c.n || 0) < SET.minTrades) continue;
+      const rows = a.rows, n = a.n, avg = a.avg, rng = Math.max(c.h - c.l, tk), atr = Math.max(atrAt(i), tk);
+      const norm = Math.max(SET.rangeNorm === 'Candle range' ? rng : atr, tk), closed = now >= c.t + tf;
+      const relV = vol[i] / Math.max(bvAt(i), 1e-9), delta = c.buy - c.sell;
+      let pa = null; const getPA = () => pa || (pa = cs.slice(Math.max(0, i - SET.lookback), i).map(x => Math.abs(x.buy - x.sell)));
+      const cand = [];
+      const tryAbs = side => {
+        const cl = clusterWin(rows, side, lv); if (!cl) return;
+        const t2 = (cl.s + cl.b) || 1, share = (side === 'low' ? cl.s : cl.b) / t2, vRatio = t2 / (lv * avg);
+        if (SET.minCell > 0 && cl.mxc < SET.minCell) return;
+        const s1 = clp((vRatio - 1) / Math.max(.5, SET.relVol));
+        const s2 = SET.deltaNorm === 'Share' ? clp((share - .5) / (ds - .5)) : clp(pctRank(Math.abs(delta), getPA()) / ds) * ((side === 'low' ? delta <= 0 : delta >= 0) ? 1 : .5);
+        const travel = side === 'low' ? c.o - c.l : c.h - c.o, maxP = SET.maxProg > 0 ? SET.maxProg / 100 : .8;
+        const sProg = clp(1 - (travel / norm) / (maxP * 1.5)), held = side === 'low' ? (c.c - c.l) / rng : (c.h - c.c) / rng, sHeld = clp(held / .6);
+        let core = .4 * s1 + .3 * s2 + .3 * (.5 * sProg + .5 * sHeld);
+        const lvOk = rows.slice(cl.i, cl.i + lv).filter(r => r[1] + r[2] >= avg).length; if (lvOk < SET.minLevels) core *= .5;
+        const lo = rows[cl.i][0] * tk, hi = (rows[cl.i + lv - 1][0] + 1) * tk, cx = ctxScore(i, side, (lo + hi) / 2);
+        const score = Math.min(100, Math.round(100 * ((1 - w) * core + w * cx) * sensM));
+        cand.push({kind: side === 'low' ? 'BA' : 'SA', side, score, lo, hi, ev: {vRatio, share, held, prog: travel / norm, ctx: cx, relV}});
+      };
+      const tryExh = side => {
+        if (n < Math.max(CFG.exhRows, lv * 2 + 1)) return;
+        let ext = 0;
+        if (side === 'high'){ let ph = -Infinity; for (let j = Math.max(0, i - SET.extLook); j < i; j++) ph = Math.max(ph, cs[j].h); ext = isFinite(ph) ? c.h - ph : 0; }
+        else { let pl = Infinity; for (let j = Math.max(0, i - SET.extLook); j < i; j++) pl = Math.min(pl, cs[j].l); ext = isFinite(pl) ? pl - c.l : 0; }
+        if (ext <= 0) return;
+        const top = side === 'high' ? rows.slice(-lv) : rows.slice(0, lv), nxt = side === 'high' ? rows.slice(-2 * lv, -lv) : rows.slice(lv, 2 * lv);
+        const vT = top.reduce((s, x) => s + x[1] + x[2], 0), vN = nxt.reduce((s, x) => s + x[1] + x[2], 0), tail = vT / (lv * avg);
+        const s1 = clp((.9 - tail) / .7), s2 = clp(1 - vT / Math.max(vN, 1e-9)), rej = side === 'high' ? (c.h - c.c) / rng : (c.c - c.l) / rng;
+        const s3 = .5 * clp(ext / (.35 * norm)) + .5 * clp(rej / .5);
+        const core = .35 * s1 + .35 * s2 + .3 * s3, lo = top[0][0] * tk, hi = (top[top.length - 1][0] + 1) * tk, cx = ctxScore(i, side, (lo + hi) / 2);
+        const score = Math.min(100, Math.round(100 * ((1 - w) * core + w * cx) * sensM));
+        cand.push({kind: side === 'high' ? 'BE' : 'SE', side, score, lo, hi, ev: {tail, fade: s2, ext: ext / norm, held: rej, ctx: cx, relV}});
+      };
+      if (SET.aeAbs){ tryAbs('low'); tryAbs('high'); }
+      if (SET.aeExh){ tryExh('high'); tryExh('low'); }
+      cand.forEach(cn => {
+        if (cn.score < (closed ? SET.minScore : SET.minScore * .85)) return;
+        const extreme = cn.side === 'low' ? c.l : c.h; let status = closed ? 'confirmed' : 'candidate';
+        if (!closed){
+          const k = c.t + cn.kind; seenNow.add(k); const fs = liveSeen.get(k) || now; liveSeen.set(k, fs);
+          if (now - fs < SET.persist * 500) return;
+        } else {
+          let ok = 0, retest = false;
+          for (let j = i + 1; j < L; j++){
+            const d = cs[j]; if (now < d.t + tf) break;
+            if (cn.side === 'low' ? d.c < extreme - .5 * atr : d.c > extreme + .5 * atr){ status = 'invalidated'; break; }
+            if (SET.confMode === 'Follow-through'){
+              if (cn.side === 'low' ? d.l < extreme - .25 * atr : d.h > extreme + .25 * atr){ status = 'invalidated'; break; } ok++;
+            } else if (SET.confMode === 'Retest' && j - i <= SET.retestWin){
+              const tol = SET.retestTol * tk;
+              if (cn.side === 'low' ? (d.l <= cn.hi + tol && d.c >= cn.lo - tol) : (d.h >= cn.lo - tol && d.c <= cn.hi + tol)) retest = true;
+            }
+          }
+          if (status !== 'invalidated'){
+            if (SET.confMode === 'Follow-through') status = ok >= SET.follow ? 'confirmed' : 'candidate';
+            else if (SET.confMode === 'Retest') status = retest ? 'confirmed' : (L - 1 - i > SET.retestWin ? 'expired' : 'candidate');
+          }
+        }
+        if (status === 'expired') return;
+        out.push(Object.assign({}, cn, {t: c.t, i, status, closed}));
+      });
+    }
+  }
+  for (const k of [...liveSeen.keys()]) if (!seenNow.has(k)) liveSeen.delete(k);
+  evMemo = {k: key, v: out}; return out;
+}
+const evShow = e => e.status === 'confirmed' || (e.status === 'candidate' && SET.showDev) || (e.status === 'invalidated' && SET.keepInv);
+
+// footprint zones: stacked imbalances + scored events (or Classic ABS zones); removed once a candle closes through them
+function buildZones(tk){
+  const ks = getKeys(), now = Date.now(), zs = [];
+  for (const k of ks){
+    const c = candles.get(k); if (!c.fp || now < c.t + tf) continue; const a = ana(c, tk);
+    if (SET.engine === 'Classic') a.zones.forEach(z => zs.push({type: z.type, lo: z.lo, hi: z.hi, t: c.t, lab: z.str > 1 ? 'H-ABS' : 'ABS', str: z.str}));
+    else a.stk.forEach(s => zs.push({type: s.side === 'buy' ? 'D' : 'S', lo: s.r0 * tk, hi: (s.r1 + 1) * tk, t: c.t, lab: 'STK', str: 1}));
+  }
+  if (SET.engine === 'Scored' && SET.showZones)
+    buildEvents(tk).filter(e => e.status === 'confirmed' || (e.status === 'candidate' && SET.showDev)).forEach(e =>
+      zs.push({type: (e.kind === 'BA' || e.kind === 'SE') ? 'D' : 'S', lo: e.lo, hi: e.hi, t: e.t, lab: e.kind + ' ' + e.score, col: SET[EVN[e.kind].c], str: e.score >= 85 ? 3 : e.score >= 75 ? 2 : 1}));
+  const out = [];
+  zs.forEach(z => {
+    let tests = 0, broken = false;
+    for (let j = lowerBound(ks, z.t) + 1; j < ks.length; j++){
+      const d = candles.get(ks[j]); if (now < d.t + tf) break;
+      if (z.type === 'S'){ if (d.c > z.hi){ broken = true; break; } if (d.h >= z.lo) tests++; }
+      else { if (d.c < z.lo){ broken = true; break; } if (d.l <= z.hi) tests++; }
+    }
+    if (!broken){ z.tests = tests; out.push(z); }
+  });
+  return out;
+}
+function buildTraps(tk){
+  const now = Date.now(), cl = getKeys().map(k => candles.get(k)).filter(c => c.fp && now >= c.t + tf), out = [];
+  for (let i = 0; i < cl.length; i++){
+    const tc = ana(cl[i], tk).trap; let bh = tc.bh, sl = tc.sl;
+    for (let j = i + 1; j <= i + CFG.trapLook && j < cl.length; j++){
+      if (bh && cl[j].c < bh.lo){ out.push({side: 'B', lo: bh.lo, hi: bh.hi, t0: cl[i].t, t1: cl[j].t}); bh = null; }
+      if (sl && cl[j].c > sl.hi){ out.push({side: 'S', lo: sl.lo, hi: sl.hi, t0: cl[i].t, t1: cl[j].t}); sl = null; }
+    }
+  }
+  return out;
+}
+function buildProf(vis, tk){
+  const m = new Map();
+  vis.forEach(c => { ana(c, tk).rows.forEach(([r, b, a]) => { let x = m.get(r); if (!x){ x = [0, 0]; m.set(r, x); } x[0] += b; x[1] += a; }); });
+  if (m.size < 6) return null;
+  const rs = [...m.keys()], rmin = Math.min(...rs), rmax = Math.max(...rs), len = rmax - rmin + 1;
+  const bid = new Array(len).fill(0), ask = new Array(len).fill(0);
+  m.forEach((v, r) => { bid[r - rmin] = v[0]; ask[r - rmin] = v[1]; });
+  const vol = bid.map((b, i) => b + ask[i]);
+  let tot = 0, poc = 0; vol.forEach((v, i) => { tot += v; if (v > vol[poc]) poc = i; });
+  let ia = poc, ib = poc, cum = vol[poc];
+  while (cum < .7 * tot && (ia > 0 || ib < len - 1)){
+    const up = ib < len - 1 ? vol[ib + 1] : -1, dn = ia > 0 ? vol[ia - 1] : -1;
+    if (up >= dn){ ib++; cum += vol[ib]; } else { ia--; cum += vol[ia]; }
+  }
+  const sm = vol.map((v, i) => (2 * v + (vol[i - 1] || 0) + (vol[i + 1] || 0)) / 4), mean = tot / len, hv = [], lv = [];
+  for (let i = 1; i < len - 1; i++){
+    if (sm[i] >= sm[i - 1] && sm[i] >= sm[i + 1] && sm[i] >= CFG.hvnK * mean && i !== poc) hv.push(i);
+    if (i >= 2 && i <= len - 3 && sm[i] <= sm[i - 1] && sm[i] <= sm[i + 1] && sm[i] <= CFG.lvnK * mean) lv.push(i);
+  }
+  const pick = (arr, cmp) => { arr.sort(cmp); const o = []; for (const i of arr){ if (o.every(j => Math.abs(j - i) >= 3)) o.push(i); if (o.length >= CFG.maxNodes) break; } return o; };
+  let maxD = 1e-9; for (let i = 0; i < len; i++) maxD = Math.max(maxD, Math.abs(ask[i] - bid[i]));
+  let maxV = 1e-9; for (let i = 0; i < len; i++) maxV = Math.max(maxV, vol[i]);
+  return {rmin, len, bid, ask, vol, poc, vah: ib, val: ia, maxV, maxD, hvn: pick(hv, (x, y) => sm[y] - sm[x]), lvn: pick(lv, (x, y) => sm[x] - sm[y])};
+}
+function getV(c){
+  const vol = c.buy + c.sell;
+  if (c.vc && c.vc.v === vol) return c.vc;
+  let pv = 0, pv2 = 0, q = 0;
+  if (c.lv.size){ for (const [k, x] of c.lv){ const p = k / 100, s = x[0] + x[1]; pv += p * s; pv2 += p * p * s; q += s; } }
+  else if (vol > 0){ const tp = (c.h + c.l + c.c) / 3; pv = tp * vol; pv2 = tp * tp * vol; q = vol; }
+  return (c.vc = {v: vol, pv, pv2, q});
+}
+function buildVwap(ks){
+  const out = []; let day = -1, cpv = 0, cpv2 = 0, cq = 0;
+  ks.forEach(k => {
+    const c = candles.get(k), d = Math.floor(c.t / 864e5);
+    if (d !== day){ day = d; cpv = cpv2 = cq = 0; }
+    const g2 = getV(c); cpv += g2.pv; cpv2 += g2.pv2; cq += g2.q;
+    const m = cq ? cpv / cq : null;
+    out.push({m, sd: cq ? Math.sqrt(Math.max(0, cpv2 / cq - m * m)) : 0, day: d});
+  });
+  return out;
+}
+function maCalc(a, L, type){
+  const out = new Array(a.length).fill(null); if (a.length < L) return out;
+  let s = 0; const al = 2 / (L + 1);
+  for (let i = 0; i < a.length; i++){
+    s += a[i]; if (i >= L) s -= a[i - L];
+    if (i === L - 1) out[i] = s / L;
+    else if (i >= L) out[i] = type === 'SMA' ? s / L : a[i] * al + out[i - 1] * (1 - al);
+  }
+  return out;
+}
+let haMemo = {k: '', a: []};
+function haSeries(ks){
+  const k = cver + ':' + (ks.length ? candles.get(ks[ks.length - 1]).c : 0); if (haMemo.k === k) return haMemo.a;
+  const a = []; let po = 0, pc = 0;
+  ks.forEach((key, i) => {
+    const c = candles.get(key), cl = (c.o + c.h + c.l + c.c) / 4, o = i ? (po + pc) / 2 : (c.o + c.c) / 2;
+    a.push({o, c: cl, h: Math.max(c.h, o, cl), l: Math.min(c.l, o, cl)}); po = o; pc = cl;
+  });
+  haMemo = {k, a}; return a;
+}
+
+// ===================== DRAWING HELPERS =====================
+function rr(x, y, w, h, r){ ctx.beginPath(); ctx.moveTo(x + r, y); ctx.arcTo(x + w, y, x + w, y + h, r); ctx.arcTo(x + w, y + h, x, y + h, r); ctx.arcTo(x, y + h, x, y, r); ctx.arcTo(x, y, x + w, y, r); ctx.closePath(); }
+function pill(x, y, txt, col, right){
+  ctx.font = 'bold 9px sans-serif';
+  const w = ctx.measureText(txt).width + 8, xx = right ? x - w : x;
+  ctx.fillStyle = 'rgba(5,7,10,.92)'; rr(xx, y, w, 13, 3); ctx.fill();
+  ctx.strokeStyle = col; ctx.lineWidth = 1; ctx.stroke();
+  ctx.fillStyle = col; ctx.textAlign = 'left'; ctx.fillText(txt, xx + 4, y + 9.5); return w;
+}
+function priceTicks(lo, hi, plotH){
+  const raw = (hi - lo) / (plotH / 46), mag = Math.pow(10, Math.floor(Math.log10(raw))), f = raw / mag;
+  const st = (f < 1.5 ? 1 : f < 3 ? 2 : f < 7 ? 5 : 10) * mag, out = [];
+  for (let p = Math.ceil(lo / st) * st; p <= hi; p += st) out.push(p);
+  return {out, st};
+}
+const TSTEPS = [5e3, 1e4, 15e3, 3e4, 6e4, 12e4, 3e5, 6e5, 9e5, 18e5, 36e5, 72e5, 108e5, 216e5, 432e5, 864e5, 1728e5, 6048e5, 2592e6];
+function timeTicks(V){
+  const need = 80 / slot * tf, st = TSTEPS.find(s => s >= need && s >= tf) || 2592e6, out = [];
+  for (let t = Math.ceil(V.tAt(-slot) / st) * st; t <= V.tAt(V.plotW + slot); t += st) out.push(t);
+  return {out, st};
+}
+function tlabel(t, st){
+  const d = new Date(t);
+  if (st >= 864e5 || (d.getHours() === 0 && d.getMinutes() === 0 && d.getSeconds() === 0)) return d.toLocaleDateString('en-GB', {day: 'numeric', month: 'short'});
+  return d.toLocaleTimeString('en-GB', st < 6e4 ? {hour: '2-digit', minute: '2-digit', second: '2-digit'} : {hour: '2-digit', minute: '2-digit'});
+}
+const tfName = () => (TFS.find(x => x[1] === tf) || ['?'])[0];
+function clampOff(o){
+  const ks = getKeys(), mxo = ks.length ? Math.max(0, (Math.floor(Date.now() / tf) * tf - ks[0]) / tf + R - 2) : 0;
+  return Math.max(-2, Math.min(mxo, o));
+}
+function setSlot(ns, x){
+  if (!G) return;
+  const tF = G.tAt(x), tA = Math.floor(Date.now() / tf) * tf;
+  slot = Math.max(3, Math.min(320, ns));
+  off = clampOff((R + 1 + (tA - tF) / tf) - (G.plotW - x) / slot); dirty = true;
+}
+function goManual(){ if (auto && G){ auto = false; pLo = G.lo; pHi = G.hi; } }
+
+// ===================== DRAW =====================
+function draw(){
+  dirty = false;
+  ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+  ctx.fillStyle = BGC; ctx.fillRect(0, 0, W, H);
+  const ks = getKeys();
+  const nar = W < 640, bkOn = fl('bk'), vpOn = fl('vp'), dpOn = fl('dp'), ndOn = fl('nd');
+  const AXW = nar ? 58 : 66, BKW = bkOn ? (nar ? 40 : 58) : 0, VPW = vpOn ? (nar ? 46 : 84) : 0, DPW = dpOn ? (nar ? 42 : 78) : 0;
+  const STR = 34, TAX = 18, plotW = Math.max(80, W - AXW - BKW - VPW - DPW), plotH = Math.max(100, H - STR - TAX);
+  const bkx = plotW, vpx = bkx + BKW, dpx = vpx + VPW, axx = dpx + DPW;
+  const tAnch = Math.floor(Date.now() / tf) * tf;
+  const X = t => plotW - (R + 1 + (tAnch - t) / tf - off) * slot;
+  const tAt = x => tAnch - ((plotW - x) / slot - R - 1 + off) * tf;
+  if (!ks.length){
+    ctx.fillStyle = MUT; ctx.font = '13px sans-serif'; ctx.fillText('Loading ' + S + ' ' + tfName() + ' ...', 20, 30);
+    ctx.fillText('Status: ' + ($('st').textContent || '-'), 20, 52);
+    let yy = 74; ctx.font = '12px ui-monospace, Menlo, Consolas, monospace';
+    Object.entries(diag).forEach(([k, v]) => { ctx.fillStyle = /OK|open/.test(v) ? UP : (k === 'note' ? '#ffc107' : DN); ctx.fillText(k + ': ' + v, 20, yy); yy += 18; });
+    if (!Object.keys(diag).length){ ctx.fillStyle = MUT; ctx.fillText('Self-check runs after 6 seconds if no data arrives...', 20, yy); }
+    G = {plotW, plotH, axx, X, tAt, lo: 0, hi: 1, tk: 1, vis: [], tAnch, hits: []}; return;
+  }
+  const tMin = tAt(-slot), tMax = tAt(plotW + slot), vis = [], iS = lowerBound(ks, tMin);
+  for (let i = iS; i < ks.length && ks[i] <= tMax; i++) vis.push(candles.get(ks[i]));
+  if (tMin < ks[0] + 30 * tf) loadMore();
+  let lo = Infinity, hi = -Infinity;
+  if (auto){
+    vis.forEach(c => { lo = Math.min(lo, c.l); hi = Math.max(hi, c.h); });
+    if (!isFinite(lo)){ lo = G && G.hi > G.lo ? G.lo : (last || 1) * .999; hi = G && G.hi > G.lo ? G.hi : (last || 1) * 1.001; }
+    const mid = (lo + hi) / 2, half = Math.max((hi - lo) / 2 * 1.12, (last || 1) * .0002) * vz; lo = mid - half; hi = mid + half;
+  } else { lo = pLo; hi = pHi; }
+  const rawTk = (hi - lo) / (plotH / 14);
+  const tk = +$('tick').value || CFG.ticks.find(x => x >= rawTk) || 500; curTk = tk;
+  const Y = p => plotH - (p - lo) / (hi - lo) * plotH;
+  const rowH = Math.max(1, tk / (hi - lo) * plotH);
+  const fpVis = vis.filter(c => c.fp);
+  const prof = (vpOn || dpOn || ndOn) && fpVis.length ? buildProf(fpVis, tk) : null;
+  const hov = mx != null && mx >= 0 && mx <= plotW ? candles.get(Math.floor(tAt(mx) / tf) * tf) : null;
+  const V = {ks, iS, vis, fpVis, X, tAt, Y, lo, hi, tk, rowH, plotW, plotH, bkx, vpx, dpx, axx, AXW, BKW, VPW, DPW, tAnch, prof, hov, hits: []};
+  G = {plotW, plotH, axx, X, tAt, lo, hi, tk, vis, tAnch, hits: V.hits};
+
+  ctx.save(); ctx.beginPath(); ctx.rect(0, 0, plotW, plotH); ctx.clip();
+  drawGrid(V);
+  if (fl('lo') && SET.lmMode !== 'Lines') drawHeat(V);
+  if (fl('zn')) drawZones(V);
+  const nodes = drawLevels(V, vpOn, ndOn);
+  const legend = drawOverlays(V);
+  drawCandles(V);
+  if (fl('bb')) drawBubbles(V);
+  if (fl('sg')) drawEvents(V);
+  if (fl('tr')) drawTraps(V);
+  if (fl('lo') && SET.lmMode !== 'Heatmap' && synced) drawLimits(V);
+  drawDrawings(V);
+  ctx.restore();
+  G.hits = V.hits;
+
+  drawRight(V, nodes);
+  drawStrip(V);
+  drawTimeAxis(V);
+  drawCross(V);
+  drawLegend(V, legend);
+}
+
+function drawGrid(V){
+  const pt = priceTicks(V.lo, V.hi, V.plotH);
+  ctx.strokeStyle = GRID; ctx.lineWidth = 1; ctx.beginPath();
+  pt.out.forEach(p => { const y = Math.round(V.Y(p)) + .5; ctx.moveTo(0, y); ctx.lineTo(V.plotW, y); });
+  timeTicks(V).out.forEach(t => { const x = Math.round(V.X(t) + slot / 2) + .5; ctx.moveTo(x, 0); ctx.lineTo(x, V.plotH); });
+  ctx.stroke(); V.pt = pt;
+}
+
+// DOM heatmap: resting liquidity over time, hidden below a threshold so only meaningful walls show
+function drawHeat(V){
+  if (!heat.length) return;
+  const key = [heat.length >> 2, V.lo.toFixed(4), V.hi.toFixed(4), slot, V.plotW, V.plotH, V.tk, tf, dpr, setVer].join('|'), now = performance.now();
+  if (key !== hk || Math.abs(off - hOff) * slot > V.plotW * .35 || (off !== hOff && now - hBuilt > 400)){
+    hk = key; hOff = off; hBuilt = now;
+    hc.width = Math.ceil(V.plotW * dpr); hc.height = Math.ceil(V.plotH * dpr); hx.setTransform(dpr, 0, 0, dpr, 0, 0);
+    const t0 = V.tAt(-10), t1 = V.tAt(V.plotW + 10), SS = heat.filter(h => h.t >= t0 - 2000 && h.t <= t1);
+    let mxv = 0;
+    for (const h of SS) for (let i = 0; i < h.a.length; i += 2){ const p = h.a[i] * h.tk; if (p >= V.lo && p <= V.hi && h.a[i+1] > mxv) mxv = h.a[i+1]; }
+    const ref = mxv || 1, thr = SET.heatThr / 100; let lx = -9;
+    for (const h of SS){
+      const x = V.X(h.t); if (x - lx < .9) continue; lx = x;
+      const w = Math.max(slot * 1000 / tf + .6, 1.2), hh = Math.max(1, h.tk / (V.hi - V.lo) * V.plotH + .5);
+      for (let i = 0; i < h.a.length; i += 2){
+        const r = h.a[i], p = r * h.tk;
+        if (p + h.tk < V.lo || p > V.hi) continue;
+        const q = h.a[i+1] / ref; if (q < thr) continue;
+        hx.fillStyle = HS[Math.round(Math.min(1, Math.pow(q, SET.heatGamma)) * 63)]; hx.fillRect(x, V.Y((r + 1) * h.tk), w, hh);
+      }
+    }
+  }
+  ctx.globalAlpha = SET.heatOp / 100; ctx.drawImage(hc, (off - hOff) * slot, 0, V.plotW, V.plotH); ctx.globalAlpha = 1;
+}
+
+function drawZones(V){
+  const zs = buildZones(V.tk).filter(z => z.hi >= V.lo && z.lo <= V.hi)
+    .sort((a, b) => Math.abs((a.lo + a.hi) / 2 - last) - Math.abs((b.lo + b.hi) / 2 - last)).slice(0, CFG.maxZones);
+  V.zoneN = zs.length;
+  zs.forEach(z => {
+    const col = z.col || (z.type === 'S' ? DN : UP), xs = Math.max(0, V.X(z.t)), y1 = V.Y(z.hi), h = Math.max(3, V.Y(z.lo) - y1);
+    ctx.fillStyle = rgba(col, .08 + .04 * z.str); ctx.fillRect(xs, y1, V.plotW - xs, h);
+    ctx.strokeStyle = rgba(col, .7); ctx.lineWidth = 1; ctx.setLineDash([6, 4]);
+    ctx.beginPath(); ctx.moveTo(xs, y1); ctx.lineTo(V.plotW, y1); ctx.moveTo(xs, y1 + h); ctx.lineTo(V.plotW, y1 + h); ctx.stroke(); ctx.setLineDash([]);
+    pill(V.plotW - 4, y1 + h / 2 - 6, (z.type === 'S' ? 'SELL ' : 'BUY ') + z.lab + (z.tests ? ' \u00B7 ' + z.tests + 'x' : ''), col, true);
+  });
+}
+
+function drawLevels(V, vpOn, ndOn){
+  const nodes = [], p = V.prof; if (!p) return nodes;
+  const line = (y, col, dash, lw) => { ctx.strokeStyle = col; ctx.lineWidth = lw; ctx.setLineDash(dash); ctx.beginPath(); ctx.moveTo(0, y); ctx.lineTo(V.plotW, y); ctx.stroke(); ctx.setLineDash([]); };
+  const rp = i => (p.rmin + i) * V.tk;
+  if (vpOn){
+    line(V.Y(rp(p.poc) + V.tk / 2), 'rgba(255,193,7,.7)', [], 1.3);
+    line(V.Y(rp(p.vah + 1)), 'rgba(160,170,190,.4)', [3, 4], 1);
+    line(V.Y(rp(p.val)), 'rgba(160,170,190,.4)', [3, 4], 1);
+    nodes.push({y: V.Y(rp(p.poc) + V.tk / 2), t: 'POC ' + pf(rp(p.poc) + V.tk / 2), col: '#ffc107'});
+  }
+  if (ndOn){
+    p.hvn.forEach(i => { const y = V.Y(rp(i) + V.tk / 2); line(y, 'rgba(41,98,255,.65)', [2, 3], 1.2); nodes.push({y, t: 'HVN', col: '#5b8cff'}); });
+    p.lvn.forEach(i => { const y = V.Y(rp(i) + V.tk / 2); line(y, 'rgba(178,107,255,.65)', [7, 4], 1.2); nodes.push({y, t: 'LVN', col: '#b26bff'}); });
+  }
+  return nodes;
+}
+
+function drawOverlays(V){
+  const legend = [], cx = c => V.X(c.t) + slot / 2;
+  if (fl('vw')){
+    const vw = buildVwap(V.ks);
+    const line = (mult, col, lw, dash) => {
+      ctx.strokeStyle = col; ctx.lineWidth = lw; ctx.setLineDash(dash); ctx.beginPath(); let pd = -1;
+      V.vis.forEach((c, i) => { const v = vw[V.iS + i]; if (!v || v.m == null) return; const x = cx(c), y = V.Y(v.m + mult * v.sd); (v.day !== pd) ? ctx.moveTo(x, y) : ctx.lineTo(x, y); pd = v.day; });
+      ctx.stroke(); ctx.setLineDash([]);
+    };
+    line(0, '#2962ff', 1.5, []);
+    if (fl('vb')){ line(1, 'rgba(41,98,255,.5)', 1, [3, 4]); line(-1, 'rgba(41,98,255,.5)', 1, [3, 4]); }
+    const lv = vw[vw.length - 1]; if (lv && lv.m != null) legend.push({t: 'VWAP Session ' + pf(lv.m), c: '#2962ff'});
+  }
+  const closes = V.ks.map(k => candles.get(k).c), mas = [];
+  if (fl('m1')) mas.push({L: Math.max(2, +$('l1').value || 200), col: '#ffc107'});
+  if (fl('m2')) mas.push({L: Math.max(2, +$('l2').value || 233), col: '#ffffff'});
+  mas.forEach(m => {
+    m.a = maCalc(closes, m.L, $('mt').value);
+    ctx.strokeStyle = m.col; ctx.lineWidth = 1.4; ctx.beginPath(); let st = false;
+    V.vis.forEach((c, i) => { const v = m.a[V.iS + i]; if (v == null) return; const x = cx(c), y = V.Y(v); st ? ctx.lineTo(x, y) : ctx.moveTo(x, y); st = true; });
+    ctx.stroke();
+    const lv = m.a[m.a.length - 1];
+    legend.push({t: $('mt').value + ' ' + m.L + ' ' + (lv != null ? pf(lv) : `(${closes.length}/${m.L} candles)`), c: lv != null ? m.col : MUT});
+  });
+  return legend;
+}
+
+function plainCandle(o, h, l, cl, x0, V){
+  const sw = slot, cxm = x0 + sw / 2, up = cl >= o, Y = V.Y, ct = SET.chartType;
+  const bw = Math.max(1, Math.min(sw * SET.bodyW / 100, 26)), body = up ? SET.upCol : SET.dnCol, bor = up ? SET.upBor : SET.dnBor, wk = up ? SET.upWick : SET.dnWick;
+  if (ct === 'Bars'){
+    ctx.strokeStyle = body; ctx.lineWidth = 1.2; ctx.beginPath(); ctx.moveTo(cxm, Y(h)); ctx.lineTo(cxm, Y(l));
+    const t = Math.min(bw / 2, 8); ctx.moveTo(cxm - t, Y(o)); ctx.lineTo(cxm, Y(o)); ctx.moveTo(cxm, Y(cl)); ctx.lineTo(cxm + t, Y(cl)); ctx.stroke(); return;
+  }
+  if (SET.wickOn){ ctx.strokeStyle = wk; ctx.lineWidth = 1; ctx.beginPath(); ctx.moveTo(cxm, Y(h)); ctx.lineTo(cxm, Y(l)); ctx.stroke(); }
+  const yT = Math.min(Y(o), Y(cl)), hh = Math.max(1, Math.abs(Y(o) - Y(cl))), hollow = ct === 'Hollow candles' && up;
+  if (SET.bodyOn && !hollow){ ctx.fillStyle = body; ctx.fillRect(cxm - bw / 2, yT, bw, hh); }
+  if ((SET.borderOn || hollow) && bw >= 3){ ctx.strokeStyle = bor; ctx.lineWidth = 1; ctx.strokeRect(cxm - bw / 2 + .5, yT + .5, bw - 1, Math.max(0, hh - 1)); }
+}
+function drawLine(V){
+  const pts = V.vis.map(c => [V.X(c.t) + slot / 2, V.Y(c.c)]); if (!pts.length) return;
+  ctx.beginPath(); pts.forEach((p, i) => i ? ctx.lineTo(p[0], p[1]) : ctx.moveTo(p[0], p[1]));
+  if (SET.chartType === 'Area'){
+    ctx.save(); ctx.lineTo(pts[pts.length - 1][0], V.plotH); ctx.lineTo(pts[0][0], V.plotH); ctx.closePath();
+    const gr = ctx.createLinearGradient(0, 0, 0, V.plotH); gr.addColorStop(0, rgba(SET.lineCol, SET.areaOp / 100)); gr.addColorStop(1, rgba(SET.lineCol, 0)); ctx.fillStyle = gr; ctx.fill(); ctx.restore();
+    ctx.beginPath(); pts.forEach((p, i) => i ? ctx.lineTo(p[0], p[1]) : ctx.moveTo(p[0], p[1]));
+  }
+  ctx.strokeStyle = SET.lineCol; ctx.lineWidth = SET.lineW; ctx.lineJoin = 'round'; ctx.stroke();
+}
+
+function drawCandles(V){
+  const {X, Y, tk, rowH, vis} = V, sw = slot, fpOn = fl('fp'), znOn = fl('zn'), dvOn = fl('dv'), now = Date.now(), ct = SET.chartType;
+  const fpType = ct === 'Candles' || ct === 'Hollow candles', isLine = ct === 'Line' || ct === 'Area';
+  const mode0 = sw >= 56 && rowH >= 9 ? 2 : sw >= 26 ? 1 : 0, classic = SET.engine === 'Classic' && fl('sg');
+  V.fp2 = fpOn && fpType && mode0 === 2;
+  if (isLine) drawLine(V);
+  const ha = ct === 'Heikin Ashi' ? haSeries(V.ks) : null;
+  vis.forEach((c, vi) => {
+    const x0 = X(c.t), cxm = x0 + sw / 2, col = c.c >= c.o ? SET.upCol : SET.dnCol;
+    const a = c.fp ? ana(c, tk) : null, mode = fpOn && fpType && a && a.n ? mode0 : 0, used = {};
+    if (mode === 0){
+      if (ha){ const h = ha[V.iS + vi]; plainCandle(h.o, h.h, h.l, h.c, x0, V); }
+      else if (!isLine) plainCandle(c.o, c.h, c.l, c.c, x0, V);
+    } else {
+      const bw = Math.max(3, Math.min(10, sw * .14)), pad = 3, colW = (sw - 2 * pad - bw - 4) / 2, lx = x0 + pad, rx = x0 + sw - pad - colW, h = Math.max(1, rowH - .5);
+      ctx.strokeStyle = ctx.fillStyle = col; ctx.lineWidth = 1;
+      ctx.beginPath(); ctx.moveTo(cxm, Y(c.h)); ctx.lineTo(cxm, Y(c.l)); ctx.stroke();
+      ctx.fillRect(cxm - bw / 2, Math.min(Y(c.o), Y(c.c)), bw, Math.max(1, Math.abs(Y(c.o) - Y(c.c))));
+      let mxc = 1e-9, mxd = 1e-9; a.rows.forEach(r => { mxc = Math.max(mxc, r[1], r[2]); mxd = Math.max(mxd, Math.abs(r[2] - r[1])); });
+      const fo = SET.fpOp / 100, deltaMode = SET.cellMode === 'Delta';
+      a.rows.forEach(([r, sv, bv]) => {
+        const y = Y((r + 1) * tk), poc = r === a.poc && SET.fpPOC;
+        if (deltaMode){
+          const d = bv - sv, kk = .16 + .72 * Math.pow(Math.abs(d) / mxd, .75), cc = d >= 0 ? '38,166,154' : '239,83,80';
+          ctx.fillStyle = poc ? '#000' : `rgba(${cc},${kk * fo})`; ctx.fillRect(lx, y, colW, h); ctx.fillRect(rx, y, colW, h);
+        } else {
+          ctx.fillStyle = poc ? '#000' : `rgba(239,83,80,${(.16 + .72 * Math.pow(sv / mxc, .75)) * fo})`; ctx.fillRect(lx, y, colW, h);
+          ctx.fillStyle = poc ? '#000' : `rgba(38,166,154,${(.16 + .72 * Math.pow(bv / mxc, .75)) * fo})`; ctx.fillRect(rx, y, colW, h);
+        }
+        if (poc){ ctx.strokeStyle = '#ffc107'; ctx.lineWidth = 1; ctx.strokeRect(lx + .5, y + .5, colW - 1, h - 1); ctx.strokeRect(rx + .5, y + .5, colW - 1, h - 1); }
+        if (SET.fpImb){
+          if (a.ia.has(r)){ ctx.strokeStyle = UP; ctx.lineWidth = 1.4; ctx.strokeRect(rx + .5, y + .5, colW - 1, h - 1); }
+          if (a.ib.has(r)){ ctx.strokeStyle = DN; ctx.lineWidth = 1.4; ctx.strokeRect(lx + .5, y + .5, colW - 1, h - 1); }
+        }
+        if (mode === 2 && SET.fpText){
+          let fs = Math.min(11, rowH - 3); const ts = fmt(sv), tb = fmt(bv), need = Math.max(ts.length, tb.length) * .6;
+          if (need * fs > colW - 3) fs = (colW - 3) / need;
+          if (fs >= 6.5){
+            ctx.font = fs + 'px sans-serif'; ctx.textAlign = 'center';
+            ctx.fillStyle = sv / mxc > .45 || poc ? '#fff' : '#c4c8d2'; ctx.fillText(ts, lx + colW / 2, y + h / 2 + fs * .35);
+            ctx.fillStyle = bv / mxc > .45 || poc ? '#fff' : '#c4c8d2'; ctx.fillText(tb, rx + colW / 2, y + h / 2 + fs * .35); ctx.textAlign = 'left';
+          }
+        }
+      });
+      if (SET.fpVA){
+        ctx.strokeStyle = 'rgba(209,212,220,.55)'; ctx.lineWidth = 1; ctx.setLineDash([2, 2]);
+        [a.vah, a.val].forEach(p => { const y = Math.round(Y(p)) + .5; ctx.beginPath(); ctx.moveTo(lx, y); ctx.lineTo(x0 + sw - pad, y); ctx.stroke(); });
+        ctx.setLineDash([]);
+        if (c.t === V.ks[V.ks.length - 1] && mode === 2){ ctx.font = '9px sans-serif'; ctx.fillStyle = MUT; ctx.fillText('\u25C2 VAH', x0 + sw + 2, Y(a.vah) + 3); ctx.fillText('\u25C2 VAL', x0 + sw + 2, Y(a.val) + 3); }
+      }
+      if (znOn) a.stk.forEach(s => { ctx.fillStyle = s.side === 'buy' ? UP : DN; ctx.fillRect(s.side === 'buy' ? x0 + sw - pad + .5 : x0 + pad - 3.5, Y((s.r1 + 1) * tk), 3, (s.r1 - s.r0 + 1) * rowH - .5); });
+      if (mode === 2 && SET.fpTot){
+        const yb = Y(a.rows[0][0] * tk) + 11; ctx.font = 'bold 10px sans-serif'; ctx.textAlign = 'center';
+        ctx.fillStyle = DN; ctx.fillText(fmt(c.sell), lx + colW / 2, yb); ctx.fillStyle = UP; ctx.fillText(fmt(c.buy), rx + colW / 2, yb); ctx.textAlign = 'left';
+      }
+    }
+    // Classic engine markers (the Scored engine draws its own, see drawEvents)
+    if (classic && a) a.sigs.forEach(s => {
+      const u = used[s.side] || (s.side === 'low' && V.fp2 ? 14 : 0), rad = s.heavy ? 8 : 6, y = s.side === 'high' ? Y(c.h) - 11 - u : Y(c.l) + 11 + u;
+      ctx.save(); if (s.heavy){ ctx.shadowColor = s.col; ctx.shadowBlur = 10; }
+      ctx.beginPath(); ctx.arc(cxm, y, rad, 0, 6.283); ctx.fillStyle = s.col + '44'; ctx.fill(); ctx.strokeStyle = s.col; ctx.lineWidth = s.heavy ? 2.2 : 1.5; ctx.stroke(); ctx.restore();
+      if (sw >= 26){ ctx.font = 'bold 9px sans-serif'; ctx.fillStyle = s.col; ctx.textAlign = 'left'; ctx.fillText(s.txt, cxm + rad + 3, y + 3); }
+      used[s.side] = u + rad * 2 + 3;
+    });
+    if (dvOn && now >= c.t + tf){
+      const dl = c.buy - c.sell, tv = c.buy + c.sell;
+      if (tv > 0 && Math.abs(dl) >= CFG.divFrac * tv){
+        const hiD = c.c > c.o && dl < 0, loD = c.c < c.o && dl > 0;
+        if (hiD || loD){ const side = hiD ? 'high' : 'low', u = used[side] || 0; pill(cxm - 14, side === 'high' ? Y(c.h) - 16 - u : Y(c.l) + 4 + u, hiD ? 'DIV \u25BC' : 'DIV \u25B2', hiD ? DN : UP); }
+      }
+    }
+  });
+}
+
+// absorption / exhaustion events from the scored engine
+function drawEvents(V){
+  if (SET.engine !== 'Scored') return;
+  const evs = buildEvents(V.tk).filter(evShow).slice(-SET.hist), tA = V.tAt(-slot), tB = V.tAt(V.plotW + slot), used = {}, op = SET.aeOp / 100;
+  evs.forEach(e => {
+    if (e.t < tA - tf || e.t > tB) return; const c = candles.get(e.t); if (!c) return;
+    const x = V.X(e.t) + slot / 2, key = e.t + e.side, u = used[key] || 0;
+    const y = e.side === 'high' ? V.Y(c.h) - 10 - u : V.Y(c.l) + 10 + u + (V.fp2 && SET.fpTot ? 14 : 0);
+    const col = SET[EVN[e.kind].c], inv = e.status === 'invalidated', cand = e.status === 'candidate';
+    let txt = SET.labelStyle.startsWith('Compact') ? e.kind + (SET.showScore ? ' ' + e.score : '') : SET.labelStyle.startsWith('Full') ? EVN[e.kind].n + (SET.showScore ? ' ' + e.score : '') : '';
+    ctx.globalAlpha = op * (inv ? .35 : cand ? .75 : 1);
+    if (SET.aeMode === 'Marker'){
+      ctx.beginPath(); ctx.arc(x, y, 5, 0, 6.283); ctx.fillStyle = rgba(col, .35); ctx.fill();
+      ctx.strokeStyle = col; ctx.lineWidth = 1.8; if (cand) ctx.setLineDash([2, 2]); ctx.stroke(); ctx.setLineDash([]);
+      if (txt && slot >= 22){ ctx.font = 'bold 9px sans-serif'; ctx.fillStyle = SET.colAL; ctx.textAlign = 'left'; ctx.fillText(txt, x + 8, y + 3); }
+      used[key] = u + 13;
+    } else {
+      pill(x - 14, y - 6, txt || e.kind, col); used[key] = u + 16;
+    }
+    ctx.globalAlpha = 1; V.hits.push({x, y, e});
+  });
+}
+
+// orderflow bubbles: neat clusters, only the biggest (adaptive top %), hidden when covered
+function drawBubbles(V){
+  const thr = bubThr(); if (!isFinite(thr) || thr <= 0) return;
+  const tA = V.tAt(-30), tB = V.tAt(V.plotW + 30), list = [];
+  for (let i = clusA.length - 1; i >= 0; i--){
+    const c = clusA[i]; if (c.T0 < tA - 120000) break; if (c.T1 < tA || c.T0 > tB) continue;
+    const v = bubVal(c); if (v < thr) continue;
+    const p = c.pv / c.qq; if (p < V.lo || p > V.hi) continue;
+    list.push({c, v, x: V.X((c.T0 + c.T1) / 2), y: V.Y(p)});
+  }
+  if (!list.length) return;
+  list.sort((a, b) => b.v - a.v);
+  const sp = SET.spacing.startsWith('Tight') ? 3 : SET.spacing.startsWith('Wide') ? 10 : 6, drawn = [], L = Math.max(2, SET.largestAt), rmin = SET.minPx, rmax = Math.max(SET.maxPx, rmin + 1);
+  list.forEach(b => {
+    const t = clp((b.v / thr - 1) / (L - 1));
+    let r = SET.sizeCurve === 'Area' ? Math.sqrt(rmin * rmin + (rmax * rmax - rmin * rmin) * t) : SET.sizeCurve === 'Linear' ? rmin + (rmax - rmin) * t : rmin + (rmax - rmin) * clp(Math.log(1 + (b.v / thr - 1)) / Math.log(L));
+    b.r = r;
+    for (const d of drawn){ const dist = Math.hypot(d.x - b.x, d.y - b.y); if (dist < sp || (SET.overlap.startsWith('Hide') && dist < d.r)) return; }
+    drawn.push(b);
+    const c = b.c, q = SET.unit.startsWith('Quote'), buy = q ? c.buyN : c.buyQ, sell = q ? c.sellN : c.sellQ, tb = (buy + sell) ? (buy - sell) / (buy + sell) : 0;
+    const hl = SET.hlOn && b.v >= SET.hlMult * thr;
+    const fill = SET.colorBy.startsWith('Dominant') ? (tb >= 0 ? SET.colBuy : SET.colSell) : (tb >= 0 ? lerpHex(SET.colBal, SET.colBuy, tb) : lerpHex(SET.colBal, SET.colSell, -tb));
+    ctx.globalAlpha = SET.bubOp / 100 * (SET.hlOn && !hl ? SET.nonHlOp / 100 : 1);
+    if (SET.shape === 'Pie'){
+      const sh = (buy + sell) ? buy / (buy + sell) : .5, a0 = -Math.PI / 2;
+      ctx.beginPath(); ctx.moveTo(b.x, b.y); ctx.arc(b.x, b.y, r, a0, a0 + sh * 6.283); ctx.closePath(); ctx.fillStyle = SET.colBuy; ctx.fill();
+      ctx.beginPath(); ctx.moveTo(b.x, b.y); ctx.arc(b.x, b.y, r, a0 + sh * 6.283, a0 + 6.283); ctx.closePath(); ctx.fillStyle = SET.colSell; ctx.fill();
+    } else { ctx.beginPath(); ctx.arc(b.x, b.y, r, 0, 6.283); ctx.fillStyle = fill; ctx.fill(); }
+    if (SET.outline){ ctx.beginPath(); ctx.arc(b.x, b.y, r, 0, 6.283); ctx.strokeStyle = tb >= 0 ? 'rgba(150,255,215,.9)' : 'rgba(255,160,180,.9)'; ctx.lineWidth = 1.2; ctx.stroke(); }
+    ctx.globalAlpha = 1;
+    if (hl){ ctx.beginPath(); ctx.arc(b.x, b.y, r + 2, 0, 6.283); ctx.strokeStyle = SET.colRing; ctx.lineWidth = 1.4; ctx.stroke(); }
+    if (SET.bLabels === 'All labels' || (SET.bLabels === 'Highlighted only' && hl)){
+      if (r >= 6 || hl){ ctx.font = '10px sans-serif'; ctx.fillStyle = SET.colLbl; ctx.textAlign = 'left'; ctx.fillText(fmt(b.v), b.x + r + 4, b.y + 3); }
+    }
+  });
+  V.bubN = drawn.length; V.bubT = list.length;
+}
+
+function drawTraps(V){
+  buildTraps(V.tk).filter(t => t.t1 >= V.tAt(0) && t.hi >= V.lo && t.lo <= V.hi).slice(-8).forEach(t => {
+    const col = t.side === 'B' ? DN : UP, yc = V.Y((t.lo + t.hi) / 2), xs = Math.max(0, V.X(t.t0) + slot / 2), xe = V.X(t.t1) + slot / 2;
+    ctx.strokeStyle = col; ctx.lineWidth = 1; ctx.setLineDash([4, 3]); ctx.beginPath(); ctx.moveTo(xs, yc); ctx.lineTo(xe, yc); ctx.stroke(); ctx.setLineDash([]);
+    pill(xe + 3, yc - 6, t.side === 'B' ? 'TRAP B' : 'TRAP S', col);
+  });
+}
+
+// limit orders: each large resting order is a line from the moment it appeared until it ended
+function drawLimits(V){
+  const now = Date.now(), op = SET.limOp / 100, list = [];
+  if (SET.limHist) bigH.forEach(h => list.push(Object.assign({live: false}, h)));
+  bigL.forEach(e => { if (now - e.since >= SET.limAge * 1000) list.push(Object.assign({live: true, until: now}, e)); });
+  let mxN = 1; list.forEach(e => { mxN = Math.max(mxN, e.n); });
+  list.forEach(e => {
+    if (e.p < V.lo || e.p > V.hi) return;
+    const x0 = Math.max(0, V.X(e.since)), x1 = e.live ? V.plotW : Math.min(V.plotW, V.X(e.until)); if (x1 < 0 || x0 > V.plotW || x1 <= x0) return;
+    const y = V.Y(e.p), col = e.side === 'bid' ? SET.colLB : SET.colLA, w = 1 + 3 * Math.sqrt(e.n / mxN);
+    ctx.globalAlpha = op * (e.live ? 1 : .45);
+    ctx.fillStyle = rgba(col, .12); ctx.fillRect(x0, y - w, x1 - x0, w * 2);
+    ctx.save(); if (e.live){ ctx.shadowColor = col; ctx.shadowBlur = 8; }
+    ctx.strokeStyle = col; ctx.lineWidth = w; ctx.beginPath(); ctx.moveTo(x0, y); ctx.lineTo(x1, y); ctx.stroke(); ctx.restore();
+    ctx.globalAlpha = 1;
+    if (!e.live){
+      ctx.globalAlpha = op * .7; ctx.fillStyle = e.kind === 'FILLED' ? '#fff' : '#9aa3ad';
+      ctx.beginPath(); if (e.kind === 'FILLED') ctx.arc(x1, y, 3, 0, 6.283); else { ctx.moveTo(x1 - 3, y - 3); ctx.lineTo(x1 + 3, y + 3); ctx.moveTo(x1 + 3, y - 3); ctx.lineTo(x1 - 3, y + 3); ctx.strokeStyle = '#9aa3ad'; ctx.lineWidth = 1.4; ctx.stroke(); }
+      if (e.kind === 'FILLED') ctx.fill(); ctx.globalAlpha = 1;
+    }
+    if (SET.limLbl && (e.live || V.X(e.until) - x0 > 40)){
+      const sec = Math.floor(((e.live ? now : e.until) - e.since) / 1000), age = sec < 90 ? sec + 's' : Math.floor(sec / 60) + 'm';
+      pill(e.live ? V.plotW - 4 : Math.min(V.plotW - 4, x1 - 4), y - 15, fmt(e.n) + (e.live ? '  ' + age : ' ' + e.kind.toLowerCase()), col, true);
+    }
+  });
+}
+
+function drawDrawings(V){
+  const items = drw.concat(pend ? [{type: 'dot', t: pend.t, p: pend.p}] : []);
+  items.forEach(d => {
+    ctx.strokeStyle = '#f2a900'; ctx.fillStyle = '#f2a900'; ctx.lineWidth = 1.2; ctx.setLineDash([]);
+    if (d.type === 'h'){ const y = V.Y(d.p); ctx.beginPath(); ctx.moveTo(0, y); ctx.lineTo(V.plotW, y); ctx.stroke(); }
+    else if (d.type === 't'){ ctx.beginPath(); ctx.moveTo(V.X(d.t1) + slot / 2, V.Y(d.p1)); ctx.lineTo(V.X(d.t2) + slot / 2, V.Y(d.p2)); ctx.stroke(); }
+    else { ctx.beginPath(); ctx.arc(V.X(d.t) + slot / 2, V.Y(d.p), 3, 0, 6.283); ctx.fill(); }
+  });
+}
+
+function drawRight(V, nodes){
+  const {Y, tk, rowH, lo, hi, plotW, plotH, bkx, vpx, dpx, axx, AXW, BKW, VPW, DPW, prof} = V;
+  if (BKW && synced){
+    const bk = new Map();
+    for (const side of [ob.b, ob.a]) for (const [p, q] of side){ if (p < lo || p > hi) continue; const r = Math.floor(p / tk + 1e-9); bk.set(r, (bk.get(r) || 0) + q); }
+    let bm = 0; bk.forEach(v => { if (v > bm) bm = v; });
+    ctx.fillStyle = 'rgba(255,255,255,.02)'; ctx.fillRect(bkx, 0, BKW - 2, plotH);
+    if (bm > 0){
+      bk.forEach((q, r) => { const v = q / bm; ctx.fillStyle = HS[Math.round(Math.pow(v, .7) * 63)]; ctx.fillRect(bkx + 2, Y((r + 1) * tk), Math.max(1, v * (BKW - 8)), Math.max(1, rowH - 1)); });
+      ctx.font = '10px sans-serif'; ctx.textAlign = 'left';
+      [...bk.entries()].sort((a, b) => b[1] - a[1]).slice(0, 4).filter(x => x[1] >= .4 * bm).forEach(([r, q]) => { ctx.fillStyle = '#fff'; ctx.fillText(fmt(q), bkx + 4, Y((r + .5) * tk) - 2); });
+    }
+    ctx.font = 'bold 9px sans-serif'; ctx.fillStyle = MUT; ctx.fillText('BOOK', bkx + 3, 10);
+  }
+  if (VPW && prof){
+    const hvs = new Set(prof.hvn), lvs = new Set(prof.lvn);
+    ctx.fillStyle = 'rgba(255,255,255,.03)'; ctx.fillRect(vpx, 0, VPW - 2, plotH);
+    for (let i = 0; i < prof.len; i++){
+      const v = prof.vol[i]; if (!v) continue;
+      ctx.fillStyle = i === prof.poc ? 'rgba(255,193,7,.9)' : hvs.has(i) ? 'rgba(41,98,255,.95)' : lvs.has(i) ? 'rgba(178,107,255,.95)' : (i >= prof.val && i <= prof.vah) ? 'rgba(41,98,255,.55)' : 'rgba(120,123,134,.45)';
+      ctx.fillRect(vpx + 1, Y((prof.rmin + i + 1) * tk), Math.max(1, v / prof.maxV * (VPW - 10)), Math.max(1, rowH - 1));
+    }
+    ctx.font = 'bold 9px sans-serif'; ctx.fillStyle = MUT; ctx.textAlign = 'left'; ctx.fillText('Volume Profile', vpx + 3, 10);
+    nodes.forEach(n => { ctx.font = 'bold 9px sans-serif'; ctx.textAlign = 'right'; ctx.fillStyle = n.col; ctx.fillText(n.t, vpx + VPW - 4, n.y - 2); });
+    ctx.textAlign = 'left';
+  } else if (prof) nodes.forEach(n => pill(plotW - 4, n.y - 6, n.t, n.col, true));
+  if (DPW && prof){
+    ctx.fillStyle = 'rgba(255,255,255,.03)'; ctx.fillRect(dpx, 0, DPW - 2, plotH);
+    for (let i = 0; i < prof.len; i++){
+      const d = prof.ask[i] - prof.bid[i]; if (!d) continue;
+      const y = Y((prof.rmin + i + 1) * tk), w = Math.max(1, Math.abs(d) / prof.maxD * (DPW - 10));
+      ctx.fillStyle = d > 0 ? 'rgba(38,166,154,.85)' : 'rgba(239,83,80,.85)'; ctx.fillRect(dpx + 1, y, w, Math.max(1, rowH - 1));
+      if (rowH >= 11 && w > 22){ ctx.font = '9px sans-serif'; ctx.fillStyle = '#fff'; ctx.textAlign = 'left'; ctx.fillText(fmt(d), dpx + 3, y + rowH / 2 + 3); }
+    }
+    let sd = 0; for (let i = 0; i < prof.len; i++) sd += prof.ask[i] - prof.bid[i];
+    ctx.font = 'bold 9px sans-serif'; ctx.fillStyle = MUT; ctx.textAlign = 'left'; ctx.fillText('\u0394 PROFILE', dpx + 3, 10); ctx.fillStyle = sd >= 0 ? UP : DN; ctx.fillText('\u03A3 ' + sgn(sd), dpx + 3, 21);
+  }
+  // price axis, last price and the candle countdown
+  ctx.fillStyle = BGC; ctx.fillRect(axx, 0, AXW, H); ctx.strokeStyle = '#2a2e39'; ctx.lineWidth = 1;
+  ctx.beginPath(); ctx.moveTo(axx + .5, 0); ctx.lineTo(axx + .5, H); ctx.stroke();
+  const pt = V.pt || priceTicks(lo, hi, plotH), dec = decFor(pt.st);
+  ctx.font = '11px sans-serif'; ctx.fillStyle = MUT; ctx.textAlign = 'left';
+  pt.out.forEach(p => { const y = Y(p); if (y > 8 && y < plotH - 30) ctx.fillText(pf(p, dec), axx + 5, y + 4); });
+  if (last){
+    const y = Math.max(10, Math.min(plotH - 34, Y(last))), lc = candles.get(V.tAnch), up = !lc || lc.c >= lc.o;
+    ctx.strokeStyle = up ? UP : DN; ctx.setLineDash([2, 3]); ctx.lineWidth = 1; ctx.beginPath(); ctx.moveTo(0, Y(last)); ctx.lineTo(plotW, Y(last)); ctx.stroke(); ctx.setLineDash([]);
+    ctx.fillStyle = up ? UP : DN; ctx.fillRect(axx + 1, y - 9, AXW - 1, 18);
+    ctx.fillStyle = '#fff'; ctx.font = 'bold 11px sans-serif'; ctx.fillText(pf(last, dec), axx + 5, y + 4);
+    const s = Math.max(0, Math.ceil((V.tAnch + tf - Date.now()) / 1000));
+    const cd = s >= 3600 ? Math.floor(s / 3600) + ':' + String(Math.floor(s % 3600 / 60)).padStart(2, '0') + ':' + String(s % 60).padStart(2, '0') : String(Math.floor(s / 60)).padStart(2, '0') + ':' + String(s % 60).padStart(2, '0');
+    ctx.fillStyle = up ? UP : DN; ctx.fillRect(axx + 1, y + 9, AXW - 1, 16); ctx.fillStyle = '#fff'; ctx.font = 'bold 11px sans-serif'; ctx.fillText(cd, axx + 5, y + 21);
+  }
+  ctx.fillStyle = auto ? '#10203d' : '#2a2e39'; rr(axx + AXW - 24, plotH - 22, 20, 18, 3); ctx.fill();
+  ctx.fillStyle = auto ? '#2962ff' : TXT; ctx.font = 'bold 11px sans-serif'; ctx.textAlign = 'center'; ctx.fillText('A', axx + AXW - 14, plotH - 9); ctx.textAlign = 'left';
+}
+
+// bottom: Delta and Volume per candle (from Binance taker-buy volume, so every timeframe is complete)
+function drawStrip(V){
+  const y0 = V.plotH; ctx.save(); ctx.beginPath(); ctx.rect(0, y0, V.plotW, 34); ctx.clip();
+  ctx.fillStyle = BGC; ctx.fillRect(0, y0, V.plotW, 34);
+  let mxd = 1e-9, mxv = 1e-9; V.vis.forEach(c => { mxd = Math.max(mxd, Math.abs(c.buy - c.sell)); mxv = Math.max(mxv, c.buy + c.sell); });
+  const fs = slot >= 48 ? 11 : slot >= 32 ? 9 : 0;
+  V.vis.forEach(c => {
+    const x0 = V.X(c.t), d = c.buy - c.sell, v = c.buy + c.sell;
+    ctx.fillStyle = d >= 0 ? `rgba(38,166,154,${.4 + .55 * Math.abs(d) / mxd})` : `rgba(239,83,80,${.4 + .55 * Math.abs(d) / mxd})`; ctx.fillRect(x0 + 1, y0 + 2, slot - 2, 15);
+    ctx.fillStyle = `rgba(120,123,134,${.25 + .45 * v / mxv})`; ctx.fillRect(x0 + 1, y0 + 18, slot - 2, 15);
+    if (fs){ ctx.font = fs + 'px sans-serif'; ctx.fillStyle = '#fff'; ctx.textAlign = 'center'; ctx.fillText(sgn(d), x0 + slot / 2, y0 + 13); ctx.fillText(fmt(v), x0 + slot / 2, y0 + 29); ctx.textAlign = 'left'; }
+  });
+  ctx.font = 'bold 9px sans-serif'; ctx.fillStyle = 'rgba(5,7,10,.85)'; ctx.fillRect(0, y0 + 2, 38, 15); ctx.fillRect(0, y0 + 18, 38, 15);
+  ctx.fillStyle = MUT; ctx.fillText('Delta', 4, y0 + 13); ctx.fillText('Volume', 4, y0 + 29);
+  ctx.restore();
+}
+function drawTimeAxis(V){
+  const y0 = V.plotH + 34; ctx.fillStyle = BGC; ctx.fillRect(0, y0, V.plotW + V.BKW + V.VPW + V.DPW, 18);
+  ctx.strokeStyle = '#2a2e39'; ctx.beginPath(); ctx.moveTo(0, y0 + .5); ctx.lineTo(V.axx, y0 + .5); ctx.stroke();
+  ctx.font = '11px sans-serif'; ctx.fillStyle = MUT; ctx.textAlign = 'center';
+  const tt = timeTicks(V);
+  tt.out.forEach(t => { const x = V.X(t) + slot / 2; if (x > 18 && x < V.plotW - 18) ctx.fillText(tlabel(t, tt.st), x, y0 + 13); });
+  ctx.textAlign = 'left';
+}
+function drawCross(V){
+  if (mx == null || my == null || mx < 0 || mx > V.plotW || my < 0 || my > V.plotH) return;
+  ctx.strokeStyle = 'rgba(120,123,134,.9)'; ctx.setLineDash([4, 4]); ctx.lineWidth = 1;
+  ctx.beginPath(); ctx.moveTo(mx, 0); ctx.lineTo(mx, V.plotH + 34); ctx.moveTo(0, my); ctx.lineTo(V.plotW, my); ctx.stroke(); ctx.setLineDash([]);
+  const p = V.lo + (V.plotH - my) / V.plotH * (V.hi - V.lo), dec = decFor((V.pt || {st: 1}).st);
+  ctx.fillStyle = '#363a45'; ctx.fillRect(V.axx + 1, my - 9, V.AXW - 1, 18); ctx.fillStyle = '#fff'; ctx.font = '11px sans-serif'; ctx.fillText(pf(p, dec), V.axx + 5, my + 4);
+  const t = Math.floor(V.tAt(mx) / tf) * tf, lab = new Date(t).toLocaleString('en-GB', {weekday: 'short', day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit'});
+  const w = ctx.measureText(lab).width + 14, x = Math.max(w / 2, Math.min(V.plotW - w / 2, mx));
+  ctx.fillStyle = '#363a45'; ctx.fillRect(x - w / 2, V.plotH + 34, w, 18); ctx.fillStyle = '#fff'; ctx.textAlign = 'center'; ctx.fillText(lab, x, V.plotH + 47); ctx.textAlign = 'left';
+  if (SET.tipOn && !tipE){ let best = null, bd = 16; V.hits.forEach(h => { const d = Math.hypot(h.x - mx, h.y - my); if (d < bd){ bd = d; best = h.e; } }); if (best) drawTip(V, best); }
+  else if (tipE) drawTip(V, tipE);
+}
+function drawTip(V, e){
+  const c = candles.get(e.t); if (!c) return;
+  const ev = e.ev, L = [EVN[e.kind].n + '  \u00B7  score ' + e.score, 'Status: ' + e.status];
+  if (e.kind === 'BA' || e.kind === 'SA'){ L.push('Cluster volume x' + ev.vRatio.toFixed(1) + ' of an average row'); L.push('Aggressor share ' + (ev.share * 100).toFixed(0) + '%'); L.push('Price held ' + (ev.held * 100).toFixed(0) + '%  \u00B7  progress ' + ev.prog.toFixed(2) + 'x'); }
+  else { L.push('Thin tail ' + ev.tail.toFixed(2) + 'x avg row'); L.push('Volume fade ' + (ev.fade * 100).toFixed(0) + '%'); L.push('Extension ' + ev.ext.toFixed(2) + 'x  \u00B7  rejection ' + (ev.held * 100).toFixed(0) + '%'); }
+  L.push('Context ' + (ev.ctx * 100).toFixed(0) + '%  \u00B7  rel. volume x' + ev.relV.toFixed(2));
+  ctx.font = '11px sans-serif'; const w = Math.max(...L.map(s => ctx.measureText(s).width)) + 16, h = L.length * 15 + 8;
+  let x = Math.min(V.plotW - w - 4, Math.max(4, (V.X(e.t) + slot / 2) + 14)), y = Math.max(4, Math.min(V.plotH - h - 4, (e.side === 'high' ? V.Y(c.h) + 20 : V.Y(c.l) - h - 20)));
+  ctx.fillStyle = 'rgba(15,18,24,.96)'; rr(x, y, w, h, 6); ctx.fill(); ctx.strokeStyle = SET[EVN[e.kind].c]; ctx.lineWidth = 1; ctx.stroke();
+  L.forEach((s, i) => { ctx.fillStyle = i === 0 ? SET[EVN[e.kind].c] : SET.colAL; ctx.font = (i === 0 ? 'bold ' : '') + '11px sans-serif'; ctx.fillText(s, x + 8, y + 18 + i * 15); });
+}
+function drawLegend(V, legend){
+  const c = V.hov || candles.get(V.ks[V.ks.length - 1]); if (!c) return;
+  const col = c.c >= c.o ? UP : DN, d = c.buy - c.sell, chg = c.c - c.o, pc = c.o ? chg / c.o * 100 : 0;
+  const MONO = 'ui-monospace, Menlo, Consolas, monospace', WT = '#cfd6df';
+  let y = 16, x = 10;
+  const seg = (t, cl, f) => { ctx.font = f || ('12px ' + MONO); ctx.fillStyle = cl; ctx.textAlign = 'left'; ctx.fillText(t, x, y); x += ctx.measureText(t).width + 8; };
+  const nl = () => { y += 16; x = 10; };
+  seg('\u25C6 ' + S + ' \u00B7 ' + tfName() + ' \u00B7 BINANCE', '#e6e9ef', 'bold 12px ' + MONO);
+  seg('O', MUT); seg(pf(c.o), col); seg('H', MUT); seg(pf(c.h), col); seg('L', MUT); seg(pf(c.l), col); seg('C', MUT); seg(pf(c.c), col);
+  seg((chg >= 0 ? '+' : '') + pf(chg) + ' (' + (pc >= 0 ? '+' : '') + pc.toFixed(2) + '%)', col);
+  nl(); seg('| Volume', MUT); seg('T ' + fmt(c.buy + c.sell), '#e6e9ef'); seg('B ' + fmt(c.buy), UP); seg('S ' + fmt(c.sell), DN); seg('D ' + sgn(d), d >= 0 ? UP : DN);
+  if (fl('lg')){
+    legend.forEach(l => { nl(); seg(l.t, l.c === MUT ? MUT : WT); });
+    if (fl('vp')){ nl(); seg('Volume Profile', WT); }
+    if (fl('lo') && SET.lmMode !== 'Lines'){ nl(); seg('DOM Heatmap', heat.length ? WT : MUT); }
+    if (fl('bb')){
+      const th = bubThr(), q = SET.unit.startsWith('Quote');
+      nl(); seg('Clusters ' + Math.round(bubWin() / 1000) + ' s \u00D7 ' + (SET.priceGroup.startsWith('Auto') ? '1 row' : SET.ticksBand + ' ticks') + ' \u00B7 ' + (SET.thrMode.startsWith('Adapt') ? 'Adaptive top ' + SET.topPct + ' %' : 'Fixed') + ' \u00B7 live \u2265 ' + (isFinite(th) ? fmt(th) + (q ? ' USDT' : '') : 'collecting') + (V.bubT ? ' \u00B7 ' + V.bubN + '/' + V.bubT + ' drawn (covered ones hidden)' : ''), MUT, '11px ' + MONO);
+    }
+    if (fl('sg')){
+      const evs = SET.engine === 'Scored' ? buildEvents(V.tk).filter(evShow) : [], e = evs[evs.length - 1];
+      nl(); seg('Absorption / Exhaustion', WT); if (e) seg(e.kind + ' ' + e.score, SET[EVN[e.kind].c]);
+    }
+    { let st = null; for (let i = V.ks.length - 1; i >= 0 && i > V.ks.length - 40 && !st; i--){ const k = candles.get(V.ks[i]); if (!k.fp) continue; const a = ana(k, V.tk); if (a.stk.length) st = a.stk[a.stk.length - 1]; }
+      nl(); seg('Imbalance', WT); if (st) seg((st.side === 'buy' ? 'SBI ' : 'SSI ') + (st.r1 - st.r0 + 1) + 'L', st.side === 'buy' ? UP : DN); }
+    if (fl('dp') && V.prof){
+      const p = V.prof; let bi = 0; for (let i = 1; i < p.len; i++) if (Math.abs(p.ask[i] - p.bid[i]) > Math.abs(p.ask[bi] - p.bid[bi])) bi = i;
+      const dd = p.ask[bi] - p.bid[bi]; nl(); seg('Delta Profile', WT); seg('DPOC ' + pf((p.rmin + bi) * V.tk + V.tk / 2) + ' \u00B7 ' + sgn(dd), dd >= 0 ? UP : DN);
+    }
+    if (fl('zn')){ nl(); seg('Footprint zones: ' + (V.zoneN || 0), MUT, '11px ' + MONO); }
+  }
+  nl();
+  if (fl('fp') && !c.fp) seg(c.k ? (c.fail ? 'Footprint unavailable for this candle (too many trades to load)' : slot >= 26 && tf >= 6e4 && tf <= 18e5 ? 'Footprint loading for this candle ...' : 'Zoom in (5m or lower) to load the footprint for this candle') : 'Partial candle (page opened mid-candle)', MUT, '11px ' + MONO);
+  else if (V.hov && c.fp && my != null && my >= 0 && my <= V.plotH){
+    const a = ana(c, V.tk), r = Math.floor((V.lo + (V.plotH - my) / V.plotH * (V.hi - V.lo)) / V.tk + 1e-9), row = a.rows.find(z => z[0] === r);
+    if (row) seg('Row ' + pf(r * V.tk) + '   Vol ' + fmt(row[1] + row[2]) + '   \u0394 ' + sgn(row[2] - row[1]) + '   Buy ' + fmt(row[2]) + '   Sell ' + fmt(row[1]), '#ffc107', '11px ' + MONO);
+  }
+  if (lazyLeft && fl('fp')){ nl(); seg('Loading footprint history: ' + lazyLeft + ' candle(s) left', MUT, '11px ' + MONO); }
+}
+
+// ===================== INTERACTION (touch first, mouse and keyboard also work) =====================
+const P = new Map(); let g = null;
+function setTool(t){ tool = t; pend = null; ['x', 'h', 't'].forEach(k => $('t_' + k).classList.toggle('on', k === t)); dirty = true; }
+$('t_x').onclick = () => setTool('x'); $('t_h').onclick = () => setTool('h'); $('t_t').onclick = () => setTool('t');
+$('t_c').onclick = () => { drw = []; pend = null; saveDr(); setTool('x'); };
+function saveDr(){ try { localStorage['smbs_dr_' + S] = JSON.stringify(drw); } catch(e){} }
+function closeMenus(){ $('mi').classList.remove('show'); $('ms').classList.remove('show'); }
+$('bi').onclick = () => { $('mi').classList.toggle('show'); $('ms').classList.remove('show'); };
+$('bs').onclick = () => { $('ms').classList.toggle('show'); $('mi').classList.remove('show'); };
+$('cg').onclick = () => { closeMenus(); openDlg('cnd'); };
+document.querySelectorAll('.gr').forEach(b => b.onclick = () => { closeMenus(); openDlg(b.dataset.d); });
+$('ct').onchange = () => { SET.chartType = $('ct').value; saveSet(); };
+document.querySelectorAll('.menu input,.menu select').forEach(el => el.addEventListener('change', () => { dirty = true; hk = ''; }));
+['xbn', 'xby', 'xok', 'xhl'].forEach(id => $(id).addEventListener('change', () => connect()));
+$('pd').onchange = () => { $('pad').classList.toggle('show', $('pd').checked); try { localStorage.smbs_pad = $('pd').checked ? 1 : 0; } catch(e){} };
+$('rv').onclick = () => { off = 0; vz = 1; auto = true; slot = W < 640 ? 56 : 64; dirty = true; };
+$('ra').onclick = () => { try { localStorage.smbs_rec = $('rec').value; } catch(e){} connect(); closeMenus(); };
+$('sym').addEventListener('keydown', e => { if (e.key === 'Enter'){ try { localStorage.smbs_sym = $('sym').value; } catch(e2){} connect(); $('sym').blur(); } });
+const tfsEl = $('tfs');
+TFS.forEach(([n, ms]) => { const b = document.createElement('button'); b.className = 'tfb'; b.textContent = n; b.dataset.ms = ms; b.onclick = () => { tf = ms; try { localStorage.smbs_tf = ms; } catch(e){} markTf(); connect(); }; tfsEl.appendChild(b); });
+function markTf(){ tfsEl.querySelectorAll('.tfb').forEach(b => b.classList.toggle('on', +b.dataset.ms === tf)); }
+
+// on-screen controls: arrows, zoom, reset, jump to latest (hold to repeat)
+function nav(k){
+  if (!G) return;
+  if (k === 'L') off = clampOff(off + 4); else if (k === 'R') off = clampOff(off - 4);
+  else if (k === 'U' || k === 'D'){ goManual(); const sh = (pHi - pLo) * .12 * (k === 'U' ? 1 : -1); pLo += sh; pHi += sh; }
+  else if (k === 'ZI') setSlot(slot * 1.15, G.plotW * .7); else if (k === 'ZO') setSlot(slot / 1.15, G.plotW * .7);
+  else if (k === 'RS'){ off = 0; vz = 1; auto = true; slot = W < 640 ? 56 : 64; } else if (k === 'NOW') off = 0;
+  dirty = true;
+}
+let padT = null;
+document.querySelectorAll('#pad button').forEach(b => {
+  const stop = () => { clearInterval(padT); padT = null; };
+  b.addEventListener('pointerdown', e => { e.preventDefault(); nav(b.dataset.n); if (!['RS', 'NOW'].includes(b.dataset.n)){ stop(); padT = setInterval(() => nav(b.dataset.n), 90); } });
+  ['pointerup', 'pointerleave', 'pointercancel'].forEach(ev => b.addEventListener(ev, stop));
+});
+addEventListener('keydown', e => {
+  if (e.target && /INPUT|SELECT/.test(e.target.tagName)) return;
+  const m = {ArrowLeft: 'L', ArrowRight: 'R', ArrowUp: 'U', ArrowDown: 'D', '+': 'ZI', '=': 'ZI', '-': 'ZO', Home: 'RS', End: 'NOW'}[e.key]; if (m){ e.preventDefault(); nav(m); }
+});
+
+const priceAt = y => G.lo + (G.plotH - y) / G.plotH * (G.hi - G.lo);
+function tap(x, y){
+  if (!G) return;
+  if (x > G.axx){
+    if (y > G.plotH - 26 && y < G.plotH){ auto = true; vz = 1; dirty = true; return; }
+    const n = Date.now(); if (n - lastAx < 350){ auto = true; vz = 1; dirty = true; } lastAx = n; return;
+  }
+  if (x > G.plotW || y > G.plotH) return;
+  if (tool === 'h'){ drw.push({type: 'h', p: priceAt(y)}); saveDr(); setTool('x'); }
+  else if (tool === 't'){
+    const pt = {t: Math.floor(G.tAt(x) / tf) * tf, p: priceAt(y)};
+    if (!pend) pend = pt; else { drw.push({type: 't', t1: pend.t, p1: pend.p, t2: pt.t, p2: pt.p}); saveDr(); setTool('x'); }
+  } else {
+    mx = x; my = y; tipE = null;
+    if (SET.tipOn && G.hits){ let best = null, bd = 18; G.hits.forEach(h => { const d = Math.hypot(h.x - x, h.y - y); if (d < bd){ bd = d; best = h.e; } }); tipE = best; }
+  }
+  dirty = true;
+}
+function relXY(e){ const r = cv.getBoundingClientRect(); return [e.clientX - r.left, e.clientY - r.top]; }
+cv.addEventListener('pointerdown', e => {
+  try { cv.setPointerCapture(e.pointerId); } catch(x){}
+  closeMenus();
+  const [x, y] = relXY(e); P.set(e.pointerId, {x, y});
+  if (P.size === 1) g = {mode: G && x > G.axx ? 'vz' : 'pan', x0: x, y0: y, off0: off, vz0: vz, lo0: G ? G.lo : 0, hi0: G ? G.hi : 1, t0: Date.now(), moved: false};
+  else if (P.size === 2){
+    const [a, b] = [...P.values()];
+    g = {mode: 'pinch', d0: Math.max(10, Math.hypot(a.x - b.x, a.y - b.y)), slot0: slot, cx: (a.x + b.x) / 2, moved: true};
+  }
+});
+cv.addEventListener('pointermove', e => {
+  const [x, y] = relXY(e);
+  if (!P.has(e.pointerId)){ if (e.pointerType === 'mouse'){ mx = x; my = y; dirty = true; } return; }
+  const pp = P.get(e.pointerId); pp.x = x; pp.y = y;
+  if (!g || !G) return;
+  if (g.mode === 'pinch'){
+    if (P.size >= 2){ const [a, b] = [...P.values()]; setSlot(g.slot0 * Math.max(10, Math.hypot(a.x - b.x, a.y - b.y)) / g.d0, g.cx); }
+    return;
+  }
+  const dx = x - g.x0, dy = y - g.y0;
+  if (!g.moved && Math.hypot(dx, dy) > 6) g.moved = true;
+  if (!g.moved) return;
+  if (g.mode === 'vz'){
+    auto = false;
+    const mid = (g.lo0 + g.hi0) / 2, half = (g.hi0 - g.lo0) / 2 * Math.exp(dy / 200);
+    pLo = mid - half; pHi = mid + half;
+  } else {
+    off = clampOff(g.off0 + dx / slot);
+    if (!auto || Math.abs(dy) > 12){
+      if (auto){ auto = false; }
+      const sh = dy / G.plotH * (g.hi0 - g.lo0);
+      pLo = g.lo0 + sh; pHi = g.hi0 + sh;
+    }
+  }
+  if (e.pointerType === 'mouse'){ mx = x; my = y; }
+  dirty = true;
+});
+function endPtr(e, cancel){
+  if (!P.has(e.pointerId)) return;
+  P.delete(e.pointerId);
+  if (P.size === 0){
+    if (g && !cancel && !g.moved && g.mode !== 'pinch' && Date.now() - g.t0 < 500){ const [x, y] = relXY(e); tap(x, y); }
+    g = null;
+  } else if (g && g.mode === 'pinch') g = null;
+}
+cv.addEventListener('pointerup', e => endPtr(e, false));
+cv.addEventListener('pointercancel', e => endPtr(e, true));
+cv.addEventListener('pointerleave', e => { if (e.pointerType === 'mouse' && !P.size){ mx = my = null; dirty = true; } });
+cv.addEventListener('wheel', e => {
+  e.preventDefault(); if (!G) return;
+  const [x] = relXY(e);
+  if (x > G.axx){ goManual(); const f = Math.exp(e.deltaY / 500), mid = (pLo + pHi) / 2, half = (pHi - pLo) / 2 * f; pLo = mid - half; pHi = mid + half; }
+  else if (e.shiftKey || Math.abs(e.deltaX) > Math.abs(e.deltaY)) off = clampOff(off - (e.deltaX || e.deltaY) / slot);
+  else setSlot(slot * (e.deltaY < 0 ? 1.1 : 1 / 1.1), x);
+  dirty = true;
+}, {passive: false});
+
+// ===================== START =====================
+function frame(){
+  if (dirty){
+    try { draw(); }
+    catch(err){ dirty = false; console.error(err); $('st').textContent = 'Draw error: ' + err.message; cv.width = W * dpr; }   // resetting the canvas clears any stuck clip/state
+  }
+  requestAnimationFrame(frame);
+}
+setInterval(() => { if (!document.hidden){ dirty = true; renderTape(); } }, 250);   // live trades, countdown
+setInterval(refreshRecent, 60000);
+setInterval(lazyStep, 1500);
+try {
+  if (localStorage.smbs_sym) $('sym').value = localStorage.smbs_sym;
+  const t = +localStorage.smbs_tf; if (TFS.some(x => x[1] === t)) tf = t;
+  if (localStorage.smbs_rec) $('rec').value = localStorage.smbs_rec;
+  if (localStorage.smbs_pad === '1'){ $('pd').checked = true; $('pad').classList.add('show'); }
+} catch(e){}
+if (!['Candles', 'Hollow candles', 'Bars', 'Heikin Ashi', 'Line', 'Area'].includes(SET.chartType)) SET.chartType = 'Candles';
+$('ct').value = SET.chartType;
+markTf();
+connect();
+requestAnimationFrame(frame);
+</script>
+</body>
+</html>
